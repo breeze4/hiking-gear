@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
 import type { CategoryItem, Item } from './types';
 import { mgToUnit, unitToMg, WEIGHT_UNITS } from './weight';
@@ -22,6 +22,9 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
   const [qty, setQty] = useState(String(item.qty));
   const [worn, setWorn] = useState(item.worn);
   const [consumable, setConsumable] = useState(item.consumable);
+  const [weighed, setWeighed] = useState(item.effective.weighed);
+  const [initialWeightMg] = useState(item.weight);
+  const userOverrodeWeighed = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -30,6 +33,19 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
+
+  // Auto-check weighed when the weight value is edited to a new numeric value.
+  // Skips: NaN (half-typed), empty, same-as-initial, or a prior manual override.
+  useEffect(() => {
+    if (userOverrodeWeighed.current) return;
+    if (weight.trim() === '') return;
+    const n = Number(weight);
+    if (!Number.isFinite(n)) return;
+    const mg = unitToMg(n, unit);
+    if (mg !== initialWeightMg) {
+      setWeighed(true);
+    }
+  }, [weight, unit, initialWeightMg]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -52,11 +68,19 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
     if (imageUrl.trim() !== item.imageUrl) itemPatch.imageUrl = imageUrl.trim();
     if (singleton !== item.singleton) itemPatch.singleton = singleton;
 
-    const ciPatch: { qty?: number; worn?: boolean; consumable?: boolean } = {};
+    const ciPatch: { qty?: number; worn?: boolean; consumable?: boolean; weighed?: boolean } = {};
     const qtyNum = Number(qty);
     if (Number.isFinite(qtyNum) && qtyNum !== item.qty) ciPatch.qty = qtyNum;
     if (worn !== item.worn) ciPatch.worn = worn;
     if (consumable !== item.consumable) ciPatch.consumable = consumable;
+
+    if (weighed !== item.effective.weighed) {
+      if (item.writeTarget.weighed === 'item') {
+        itemPatch.weighed = weighed;
+      } else {
+        ciPatch.weighed = weighed;
+      }
+    }
 
     setBusy(true);
     setError(null);
@@ -67,7 +91,20 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
       if (Object.keys(ciPatch).length > 0) {
         await api.updateCategoryItem(categoryId, item.itemId, ciPatch);
       }
-      const patched: CategoryItem = { ...item, ...itemPatch, ...ciPatch } as CategoryItem;
+      const weighedWritten = 'weighed' in itemPatch || 'weighed' in ciPatch;
+      const patched: CategoryItem = {
+        ...item,
+        ...itemPatch,
+        ...ciPatch,
+        itemWeighed:
+          item.writeTarget.weighed === 'item' && 'weighed' in itemPatch ? weighed : item.itemWeighed,
+        ciWeighed:
+          item.writeTarget.weighed === 'categoryItem' && 'weighed' in ciPatch ? weighed : item.ciWeighed,
+        effective: {
+          ...item.effective,
+          weighed: weighedWritten ? weighed : item.effective.weighed,
+        },
+      } as CategoryItem;
       onSaved(patched);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -101,6 +138,17 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
               <select value={unit} onChange={(e) => setUnit(e.target.value)}>
                 {WEIGHT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Weighed</span>
+              <input
+                type="checkbox"
+                checked={weighed}
+                onChange={(e) => {
+                  userOverrodeWeighed.current = true;
+                  setWeighed(e.target.checked);
+                }}
+              />
             </label>
             <label className="field">
               <span className="field-label">Price</span>
