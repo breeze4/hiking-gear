@@ -96,6 +96,13 @@ db.exec(`
   }
 }
 
+{
+  const cols = db.prepare('PRAGMA table_info(items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'singleton')) {
+    db.exec('ALTER TABLE items ADD COLUMN singleton INTEGER NOT NULL DEFAULT 1');
+  }
+}
+
 export function setSetting(key: string, value: string) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
 }

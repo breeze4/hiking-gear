@@ -250,6 +250,7 @@ function ItemEditor({ initial, onSubmit, onCancel, submitLabel }: {
   const [price, setPrice] = useState(String(initial.price ?? 0));
   const [url, setUrl] = useState(initial.url ?? '');
   const [imageUrl, setImageUrl] = useState(initial.imageUrl ?? '');
+  const [singleton, setSingleton] = useState(initial.singleton ?? true);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -261,6 +262,7 @@ function ItemEditor({ initial, onSubmit, onCancel, submitLabel }: {
       price: Number(price) || 0,
       url: url.trim(),
       imageUrl: imageUrl.trim(),
+      singleton,
     });
   }
 
@@ -297,6 +299,10 @@ function ItemEditor({ initial, onSubmit, onCancel, submitLabel }: {
       <label className="field">
         <span className="field-label">Image URL</span>
         <input type="text" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">Usually qty=1 (singleton)</span>
+        <input type="checkbox" checked={singleton} onChange={(e) => setSingleton(e.target.checked)} />
       </label>
       <div className="form-actions">
         <button type="submit" className="button primary">{submitLabel}</button>

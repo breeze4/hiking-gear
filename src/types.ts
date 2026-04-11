@@ -28,6 +28,7 @@ export type CategoryItem = {
   image: string;
   imageUrl: string;
   url: string;
+  singleton: boolean;
   qty: number;
   worn: boolean;
   consumable: boolean;
@@ -89,6 +90,7 @@ export type Item = {
   image: string;
   imageUrl: string;
   url: string;
+  singleton: boolean;
 };
 
 export type Template = {
