@@ -498,9 +498,6 @@ textarea.inline-text-input { min-height: 3rem; resize: vertical; }
 }
 
 .item-row.excluded { opacity: 0.5; }
-.item-row.excluded .col-desc,
-.item-row.excluded .col-weight,
-.item-row.excluded .col-price { text-decoration: line-through; }
 
 .cell-input {
   font: inherit;
