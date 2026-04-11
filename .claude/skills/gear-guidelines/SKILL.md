@@ -16,8 +16,8 @@ This skill condenses external gear-planning expertise into a layered markdown di
   - Reading existing `docs/guidelines/**` before edits.
   - Writing under `docs/guidelines/**`.
 - Do **not** invent principles the sources don't support. If the user has no source material for a category, say so and move on — leave the file unwritten rather than fabricating.
-- Do **not** include per-item picks. Brand/model-level recommendations live in the item library, not the guidelines.
-- Do **not** reference the user's specific gear. Guidelines are trip-type-agnostic and stable; the user's pack rotates.
+- **Do** include suggested brand/model picks with short rationale when the sources name them. Picks are exemplars, not prescriptions — they show the reader concrete options that illustrate the principle so they know what to shop for. Prefer naming two or three picks at different price/weight points when the sources offer them. Never fabricate a pick; only name gear a source actually endorses.
+- Do **not** reference the user's specific gear. Guidelines are trip-type-agnostic and stable; the user's pack rotates. Picks from sources are fine; "the user's current Durston Xmid" is not.
 - One file at a time. Pause for review before moving to the next category.
 
 ## Directory layout
@@ -79,7 +79,7 @@ Do not start writing until the user confirms.
 For the first category the user picks (or the next one in template order):
 
 1. **Read relevant source material.** If the user pointed to an epub, read it with the Read tool. If they pointed to a notes file, read that. If they pasted text, work from the paste. Stay focused on the current category — don't sweep the whole source just to say you did.
-2. **Condense into principles.** Extract the rules, tradeoffs, and heuristics for this category. No brand names. No weights. No per-trip picks. Think: "What would a reader need to decide what *kind* of shelter to bring?" — not "which shelter."
+2. **Condense into principles and picks.** Extract the rules, tradeoffs, and heuristics for this category, AND surface the specific brand/model picks the sources endorse. A reader should come away knowing both what *kind* of shelter to bring and which specific products the sources point to as examples of that kind. Keep picks tight — a one-line name + short reason is enough; deep specs belong in the item library.
 3. **Write a single markdown file** at `docs/guidelines/<category>.md`. Use headers for sub-topics (e.g. under `shelter.md`: "Shelter type", "Site selection", "Stakes and guylines"). Keep it tight — a reader should be able to skim it in under two minutes.
 4. **Pause for review.** Show the user the file. Ask: "Look good? Any edits before we move to the next category?"
 5. **Apply edits or move on.** Only advance when the user says "move on" or equivalent.
@@ -113,9 +113,8 @@ If the new source contradicts existing content, flag the contradiction to the us
 
 ## What not to do
 
-- Don't fabricate principles. If the sources are silent on a topic, the guidelines are silent too.
-- Don't include item picks. No "we recommend the Xmid Pro." That belongs in the item library.
-- Don't reference the user's current gear. Guidelines outlive any specific pack.
+- Don't fabricate principles or picks. If the sources are silent on a topic, the guidelines are silent too. If no source names a specific product in a category, don't invent one.
+- Don't reference the user's current gear. Guidelines outlive any specific pack — but source-endorsed picks (e.g. "Skurka's long-term pick: Black Diamond Alpine Carbon Cork") are welcome and encouraged.
 - Don't batch-write every category in one pass. One file, pause, review, next.
 - Don't rewrite a file that already exists — read it first, then patch.
 - Don't touch the database, the HTTP API, or the dev server. This skill is pure disk I/O under `docs/guidelines/`.
