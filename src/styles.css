@@ -252,6 +252,26 @@ table.items thead th {
   .prep-cell-button.prep-checked { color: #7cc29e; }
   .prep-cell-button.prep-checked:hover { color: #a3d9b8; }
 }
+
+/* Fully-prepped row condensation.
+   Separate concept from .item-row.excluded — don't overlap. */
+.item-row.prep-condensed:not(.excluded) { opacity: 0.7; }
+.item-row.prep-condensed:not(.excluded):hover { opacity: 0.9; }
+.prep-cell-button.prep-aggregate {
+  color: #2c6e49;
+  opacity: 0.55;
+}
+.prep-cell-button.prep-aggregate:hover { opacity: 1; color: #1f4f34; }
+@media (prefers-color-scheme: dark) {
+  .prep-cell-button.prep-aggregate { color: #7cc29e; }
+  .prep-cell-button.prep-aggregate:hover { color: #a3d9b8; }
+}
+
+/* Category header "N/M prepped" label */
+.category-prepped {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
 .col-weight { width: 7rem; text-align: right; }
 .col-price { width: 5rem; text-align: right; }
 .col-desc { color: #777; font-size: 0.88rem; }

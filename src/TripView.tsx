@@ -14,12 +14,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CheckCircle2, Circle, Minus, Pencil, Plus, RotateCcw, Trash2, X, CircleSlash } from 'lucide-react';
+import { CheckCircle2, Circle, CircleCheck, Minus, Pencil, Plus, RotateCcw, Trash2, X, CircleSlash } from 'lucide-react';
 import { api } from './api';
 import { AddItemModal } from './AddItemModal';
 import { InlineText } from './InlineText';
 import { RowEditModal } from './RowEditModal';
 import { Button } from '@/components/ui/button';
+import { categoryProgress, isRowFullyPrepped, listProgress, type ProgressCounts } from './lib/progress';
 import type { Category, CategoryItem, ListDetail, ListSummary, Settings } from './types';
 import { formatWeight, mgToUnit } from './weight';
 
@@ -315,6 +316,8 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
     return { weight, worn, consumable, price, qty, base: weight - worn - consumable, pack: weight - worn };
   }, [draft]);
 
+  const prep = useMemo(() => listProgress(draft), [draft]);
+
   const totalUnit = settings.totalUnit;
 
   return (
@@ -370,6 +373,12 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
             <span className="total-label">Price</span>
             <span className="total-value">{settings.currencySymbol}{totals.price.toFixed(2)}</span>
           </div>
+          {prep.total > 0 && (
+            <div className="total">
+              <span className="total-label">Prepped</span>
+              <span className="total-value">{prep.prepped}/{prep.total}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -459,6 +468,7 @@ function SortableCategory(props: SortableCategoryProps) {
     opacity: sortable.isDragging ? 0.5 : 1,
   };
   const t = useMemo(() => categoryTotals(cat), [cat]);
+  const prep: ProgressCounts = useMemo(() => categoryProgress(cat), [cat]);
 
   return (
     <section ref={sortable.setNodeRef} style={style} className="category">
@@ -483,6 +493,12 @@ function SortableCategory(props: SortableCategoryProps) {
           <span>{formatWeight(t.weight, totalUnit)}</span>
           <span>•</span>
           <span>{t.qty} items</span>
+          {prep.total > 0 && (
+            <>
+              <span>•</span>
+              <span className="category-prepped">{prep.prepped}/{prep.total} prepped</span>
+            </>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -577,6 +593,7 @@ function ItemRow({ item, currency, onPatchCi, onPatchItem, onUnlink, onRequestEd
   const excluded = item.qty === 0;
   const isSingletonDefault = item.singleton && item.qty === 1;
   const showQtyControls = !excluded && !isSingletonDefault;
+  const condensed = !excluded && isRowFullyPrepped(item);
 
   const togglePrep = (field: PrepField) => {
     const next = !item.effective[field];
@@ -589,7 +606,7 @@ function ItemRow({ item, currency, onPatchCi, onPatchItem, onUnlink, onRequestEd
   };
 
   return (
-    <tr ref={sortableRef} style={sortableStyle} className={`item-row${excluded ? ' excluded' : ''}`}>
+    <tr ref={sortableRef} style={sortableStyle} className={`item-row${excluded ? ' excluded' : ''}${condensed ? ' prep-condensed' : ''}`}>
       <td className="col-drag">
         <button
           type="button"
@@ -618,6 +635,25 @@ function ItemRow({ item, currency, onPatchCi, onPatchItem, onUnlink, onRequestEd
           <td className="col-prep" />
           <td className="col-prep" />
           <td className="col-prep" />
+        </>
+      ) : condensed ? (
+        <>
+          <td className="col-prep" />
+          <td className="col-prep" />
+          <td className="col-prep">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="prep-cell-button prep-aggregate"
+              aria-label="Un-finalize row"
+              aria-pressed={true}
+              title="Fully prepped — click to un-finalize"
+              onClick={(e) => { e.stopPropagation(); onPatchCi({ packed: false }); }}
+            >
+              <CircleCheck />
+            </Button>
+          </td>
         </>
       ) : (
         <>
