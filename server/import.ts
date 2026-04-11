@@ -70,8 +70,8 @@ function main() {
   const lists = library.lists ?? [];
 
   const upsertItem = db.prepare(`
-    INSERT INTO items (id, name, description, weight, author_unit, price, image, image_url, url)
-    VALUES (@id, @name, @description, @weight, @author_unit, @price, @image, @image_url, @url)
+    INSERT INTO items (id, name, description, weight, author_unit, price, image, image_url, url, acquired, weighed)
+    VALUES (@id, @name, @description, @weight, @author_unit, @price, @image, @image_url, @url, 1, 1)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       description = excluded.description,
@@ -80,7 +80,9 @@ function main() {
       price = excluded.price,
       image = excluded.image,
       image_url = excluded.image_url,
-      url = excluded.url
+      url = excluded.url,
+      acquired = 1,
+      weighed = 1
   `);
 
   const insertList = db.prepare(`
@@ -94,8 +96,8 @@ function main() {
   `);
 
   const insertCategoryItem = db.prepare(`
-    INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, acquired, weighed)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)
   `);
 
   const tx = db.transaction(() => {

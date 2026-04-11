@@ -234,7 +234,9 @@ app.post('/api/lists/from-template', async (c) => {
     const insertCategory = db.prepare('INSERT INTO categories (list_id, name, color, position) VALUES (?, ?, NULL, ?)');
     const findItem = db.prepare('SELECT id FROM items WHERE LOWER(name) = LOWER(?) LIMIT 1');
     const insertItem = db.prepare('INSERT INTO items (name, description, weight, author_unit, price, image, image_url, url) VALUES (?, ?, 0, \'oz\', 0, \'\', \'\', \'\')');
-    const insertCategoryItem = db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority) VALUES (?, ?, ?, 1, 0, 0, 0, ?)');
+    // Template items currently carry no weight data, so weighed defaults to 0.
+    // acquired/packed are 0: the user hasn't acquired the suggested gear yet.
+    const insertCategoryItem = db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority, acquired, weighed, packed) VALUES (?, ?, ?, 1, 0, 0, 0, ?, 0, 0, 0)');
 
     const categoriesByTplId = new Map<number, { newCategoryId: number; counter: number }>();
     const itemIdByLowerName = new Map<string, number>();
@@ -702,7 +704,11 @@ app.post('/api/lists/:id/clone', async (c) => {
 
     const cats = db.prepare('SELECT id, name, color, position FROM categories WHERE list_id = ? ORDER BY position, id').all(id) as Array<{ id: number; name: string; color: string | null; position: number }>;
     const insCat = db.prepare('INSERT INTO categories (list_id, name, color, position) VALUES (?, ?, ?, ?)');
-    const insCi = db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    // Clone always resets prep flags on the new list's category_items rows:
+    // packed=0 always; acquired=0/weighed=0 regardless of singleton (for
+    // singleton items those ci fields are not authoritative, so writing 0
+    // is just tidy). Library-level items.{acquired,weighed} is untouched.
+    const insCi = db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority, acquired, weighed, packed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)');
     for (const cat of cats) {
       const newCatId = insCat.run(newListId, cat.name, cat.color, cat.position).lastInsertRowid as number;
       const items = db.prepare('SELECT item_id AS itemId, position, qty, worn, consumable, star, priority FROM category_items WHERE category_id = ? ORDER BY position').all(cat.id) as Array<{ itemId: number; position: number; qty: number; worn: number; consumable: number; star: number; priority: string | null }>;

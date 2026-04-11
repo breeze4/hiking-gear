@@ -138,6 +138,22 @@ db.exec(`
   }
 }
 
+// One-shot prep backfill: the foundation migration added acquired/weighed
+// with default 0, which makes pre-existing lighterpack-imported gear look
+// unprepped. Treat all prior rows as already acquired and weighed.
+// Write-once, gated on the prep_backfill_done setting. To re-run manually:
+//   DELETE FROM settings WHERE key='prep_backfill_done';
+{
+  const done = db.prepare("SELECT value FROM settings WHERE key = 'prep_backfill_done'").get() as { value: string } | undefined;
+  if (!done) {
+    db.transaction(() => {
+      db.exec('UPDATE items SET acquired = 1, weighed = 1');
+      db.exec('UPDATE category_items SET acquired = 1, weighed = 1');
+      db.prepare("INSERT INTO settings (key, value) VALUES ('prep_backfill_done', '1') ON CONFLICT(key) DO NOTHING").run();
+    })();
+  }
+}
+
 export function setSetting(key: string, value: string) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
 }
