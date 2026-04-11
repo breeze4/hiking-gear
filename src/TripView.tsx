@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   PointerSensor,
@@ -17,8 +17,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { api } from './api';
 import { AddItemModal } from './AddItemModal';
 import { InlineText } from './InlineText';
+import { RowEditModal } from './RowEditModal';
 import type { Category, CategoryItem, ListDetail, ListSummary, Settings } from './types';
-import { formatWeight, mgToUnit, unitToMg, WEIGHT_UNITS } from './weight';
+import { formatWeight, mgToUnit } from './weight';
 
 type Props = {
   list: ListDetail;
@@ -57,7 +58,7 @@ function categoryTotals(cat: Category): CategoryTotals {
 export function TripView({ list, settings, onListChanged, onClone, onDelete, onArchivedChange }: Props) {
   const [draft, setDraft] = useState<ListDetail>(list);
   const [error, setError] = useState<string | null>(null);
-  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<{ categoryId: number; itemId: number } | null>(null);
   const [addItemForCat, setAddItemForCat] = useState<number | null>(null);
   const [autoFocusCatId, setAutoFocusCatId] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -139,30 +140,6 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
     });
     try {
       await api.updateCategoryItem(catId, itemId, patch);
-    } catch (e) {
-      setDraft(prev);
-      handleErr(e);
-    }
-  }
-
-  async function patchItem(itemId: number, patch: Partial<CategoryItem>) {
-    const prev = draft;
-    setDraft({
-      ...draft,
-      categories: draft.categories.map((c) => ({
-        ...c,
-        items: c.items.map((it) => it.itemId !== itemId ? it : { ...it, ...patch } as CategoryItem),
-      })),
-    });
-    try {
-      const apiPatch: any = {};
-      if ('name' in patch) apiPatch.name = patch.name;
-      if ('description' in patch) apiPatch.description = patch.description;
-      if ('weight' in patch) apiPatch.weight = patch.weight;
-      if ('authorUnit' in patch) apiPatch.authorUnit = patch.authorUnit;
-      if ('price' in patch) apiPatch.price = patch.price;
-      if ('url' in patch) apiPatch.url = patch.url;
-      await api.updateItem(itemId, apiPatch);
     } catch (e) {
       setDraft(prev);
       handleErr(e);
@@ -342,16 +319,14 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
               currency={settings.currencySymbol}
               totalUnit={totalUnit}
               autoFocusName={autoFocusCatId === cat.id}
-              editingKey={editingKey}
-              setEditingKey={setEditingKey}
               onRename={(v) => renameCategory(cat.id, v)}
               onDelete={() => deleteCategory(cat.id)}
               onAddItem={() => setAddItemForCat(cat.id)}
               onPatchCi={(itemId, patch) => patchCategoryItem(cat.id, itemId, patch)}
-              onPatchItem={(itemId, patch) => patchItem(itemId, patch)}
               onUnlink={(itemId) => unlinkItem(cat.id, itemId)}
               onItemsReorder={(ev) => reorderItems(cat.id, ev)}
               sensors={sensors}
+              onRequestEdit={(itemId) => setEditTarget({ categoryId: cat.id, itemId })}
             />
           ))}
         </SortableContext>
@@ -368,6 +343,29 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
           onLinked={() => { setAddItemForCat(null); refreshList(); }}
         />
       )}
+
+      {editTarget && (() => {
+        const cat = draft.categories.find((c) => c.id === editTarget.categoryId);
+        const ci = cat?.items.find((it) => it.itemId === editTarget.itemId);
+        if (!ci) return null;
+        return (
+          <RowEditModal
+            categoryId={editTarget.categoryId}
+            item={ci}
+            onClose={() => setEditTarget(null)}
+            onSaved={(patched) => {
+              setDraft((d) => ({
+                ...d,
+                categories: d.categories.map((c) => c.id !== editTarget.categoryId ? c : {
+                  ...c,
+                  items: c.items.map((it) => it.itemId !== editTarget.itemId ? it : patched),
+                }),
+              }));
+              setEditTarget(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -377,20 +375,18 @@ type SortableCategoryProps = {
   currency: string;
   totalUnit: string;
   autoFocusName: boolean;
-  editingKey: string | null;
-  setEditingKey: (k: string | null | ((cur: string | null) => string | null)) => void;
   onRename: (v: string) => void;
   onDelete: () => void;
   onAddItem: () => void;
   onPatchCi: (itemId: number, patch: { qty?: number; worn?: boolean; consumable?: boolean }) => void;
-  onPatchItem: (itemId: number, patch: Partial<CategoryItem>) => void;
   onUnlink: (itemId: number) => void;
   onItemsReorder: (event: DragEndEvent) => void;
   sensors: ReturnType<typeof useSensors>;
+  onRequestEdit: (itemId: number) => void;
 };
 
 function SortableCategory(props: SortableCategoryProps) {
-  const { cat, currency, totalUnit, autoFocusName, editingKey, setEditingKey, onRename, onDelete, onAddItem, onPatchCi, onPatchItem, onUnlink, onItemsReorder, sensors } = props;
+  const { cat, currency, totalUnit, autoFocusName, onRename, onDelete, onAddItem, onPatchCi, onUnlink, onItemsReorder, sensors, onRequestEdit } = props;
   const sortable = useSortable({ id: cat.id });
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
@@ -454,12 +450,9 @@ function SortableCategory(props: SortableCategoryProps) {
                   item={it}
                   categoryId={cat.id}
                   currency={currency}
-                  editing={editingKey === `${cat.id}:${it.itemId}`}
-                  onEdit={() => setEditingKey(`${cat.id}:${it.itemId}`)}
-                  onLeave={() => setEditingKey((k) => k === `${cat.id}:${it.itemId}` ? null : k)}
                   onPatchCi={(patch) => onPatchCi(it.itemId, patch)}
-                  onPatchItem={(patch) => onPatchItem(it.itemId, patch)}
                   onUnlink={() => onUnlink(it.itemId)}
+                  onRequestEdit={() => onRequestEdit(it.itemId)}
                 />
               ))}
             </tbody>
@@ -477,12 +470,9 @@ type ItemRowProps = {
   item: CategoryItem;
   categoryId: number;
   currency: string;
-  editing: boolean;
-  onEdit: () => void;
-  onLeave: () => void;
   onPatchCi: (patch: { qty?: number; worn?: boolean; consumable?: boolean }) => void;
-  onPatchItem: (patch: Partial<CategoryItem>) => void;
   onUnlink: () => void;
+  onRequestEdit: () => void;
 };
 
 function SortableItemRow(props: ItemRowProps) {
@@ -510,113 +500,9 @@ type ItemRowExtraProps = ItemRowProps & {
   dragListeners?: Record<string, any>;
 };
 
-function ItemRow({ item, currency, editing, onEdit, onLeave, onPatchCi, onPatchItem, onUnlink, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
-  const rowRef = useRef<HTMLTableRowElement | null>(null);
-  const setRefs = (el: HTMLTableRowElement | null) => {
-    rowRef.current = el;
-    if (sortableRef) sortableRef(el);
-  };
-  // local text drafts so debounced text fields don't flicker
-  const [name, setName] = useState(item.name);
-  const [desc, setDesc] = useState(item.description);
-  const [qty, setQty] = useState(String(item.qty));
-  const [weightVal, setWeightVal] = useState(String(mgToUnit(item.weight, item.authorUnit).toFixed(2)));
-  const [unit, setUnit] = useState(item.authorUnit);
-  const [price, setPrice] = useState(String(item.price));
-
-  useEffect(() => {
-    setName(item.name);
-    setDesc(item.description);
-    setQty(String(item.qty));
-    setWeightVal(String(mgToUnit(item.weight, item.authorUnit).toFixed(2)));
-    setUnit(item.authorUnit);
-    setPrice(String(item.price));
-  }, [item.itemId, item.name, item.description, item.qty, item.weight, item.authorUnit, item.price]);
-
-  // Click-outside to leave edit mode
-  useEffect(() => {
-    if (!editing) return;
-    function handler(ev: MouseEvent) {
-      if (!rowRef.current) return;
-      if (rowRef.current.contains(ev.target as Node)) return;
-      onLeave();
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [editing, onLeave]);
-
-  function commitName() {
-    const v = name.trim();
-    if (v !== item.name) onPatchItem({ name: v });
-  }
-  function commitDesc() {
-    if (desc !== item.description) onPatchItem({ description: desc });
-  }
-  function commitQty() {
-    const n = Number(qty);
-    if (Number.isFinite(n) && n !== item.qty) onPatchCi({ qty: n });
-    else setQty(String(item.qty));
-  }
-  function commitWeight() {
-    const n = Number(weightVal);
-    if (!Number.isFinite(n)) { setWeightVal(String(mgToUnit(item.weight, item.authorUnit).toFixed(2))); return; }
-    const mg = unitToMg(n, unit);
-    if (mg !== item.weight || unit !== item.authorUnit) onPatchItem({ weight: mg, authorUnit: unit });
-  }
-  function commitPrice() {
-    const n = Number(price);
-    if (!Number.isFinite(n)) { setPrice(String(item.price)); return; }
-    if (n !== item.price) onPatchItem({ price: n });
-  }
-
-  if (!editing) {
-    return (
-      <tr ref={setRefs} style={sortableStyle} className="item-row" onClick={onEdit}>
-        <td className="col-drag">
-          <button
-            type="button"
-            className="drag-handle"
-            aria-label="Drag item"
-            onClick={(e) => e.stopPropagation()}
-            {...dragAttributes}
-            {...dragListeners}
-          >⋮⋮</button>
-        </td>
-        <td className="col-qty">{item.qty}</td>
-        <td>
-          {item.url ? (
-            <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{item.name || '(unnamed)'}</a>
-          ) : (
-            item.name || '(unnamed)'
-          )}
-          {item.priority && (
-            <span className={`pill pill-${String(item.priority).toLowerCase()}`}>{item.priority}</span>
-          )}
-        </td>
-        <td className="col-desc">{item.description}</td>
-        <td className="col-flags">{item.worn ? '✓' : ''}</td>
-        <td className="col-flags">{item.consumable ? '✓' : ''}</td>
-        <td className="col-weight">
-          {mgToUnit(item.weight, item.authorUnit).toFixed(2)} {item.authorUnit}
-        </td>
-        <td className="col-price">
-          {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
-        </td>
-        <td className="col-actions">
-          <button
-            type="button"
-            className="row-action"
-            onClick={(e) => { e.stopPropagation(); onUnlink(); }}
-            aria-label="Remove item"
-            title="Remove from category"
-          >×</button>
-        </td>
-      </tr>
-    );
-  }
-
+function ItemRow({ item, currency, onUnlink, onRequestEdit, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
   return (
-    <tr ref={setRefs} style={sortableStyle} className="item-row item-row-editing">
+    <tr ref={sortableRef} style={sortableStyle} className="item-row">
       <td className="col-drag">
         <button
           type="button"
@@ -627,77 +513,34 @@ function ItemRow({ item, currency, editing, onEdit, onLeave, onPatchCi, onPatchI
           {...dragListeners}
         >⋮⋮</button>
       </td>
-      <td className="col-qty">
-        <input
-          className="cell-input cell-qty"
-          type="number"
-          min="0"
-          value={qty}
-          onChange={(e) => setQty(e.target.value)}
-          onBlur={commitQty}
-        />
-      </td>
+      <td className="col-qty">{item.qty}</td>
       <td>
-        <input
-          className="cell-input"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={commitName}
-        />
+        {item.url ? (
+          <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{item.name || '(unnamed)'}</a>
+        ) : (
+          item.name || '(unnamed)'
+        )}
+        {item.priority && (
+          <span className={`pill pill-${String(item.priority).toLowerCase()}`}>{item.priority}</span>
+        )}
       </td>
-      <td>
-        <input
-          className="cell-input"
-          type="text"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          onBlur={commitDesc}
-        />
-      </td>
-      <td className="col-flags">
-        <input
-          type="checkbox"
-          checked={item.worn}
-          onChange={(e) => onPatchCi({ worn: e.target.checked })}
-        />
-      </td>
-      <td className="col-flags">
-        <input
-          type="checkbox"
-          checked={item.consumable}
-          onChange={(e) => onPatchCi({ consumable: e.target.checked })}
-        />
-      </td>
+      <td className="col-desc">{item.description}</td>
+      <td className="col-flags">{item.worn ? '✓' : ''}</td>
+      <td className="col-flags">{item.consumable ? '✓' : ''}</td>
       <td className="col-weight">
-        <input
-          className="cell-input cell-weight"
-          type="number"
-          step="0.01"
-          value={weightVal}
-          onChange={(e) => setWeightVal(e.target.value)}
-          onBlur={commitWeight}
-        />
-        <select
-          className="cell-unit"
-          value={unit}
-          onChange={(e) => { setUnit(e.target.value); }}
-          onBlur={commitWeight}
-        >
-          {WEIGHT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-        </select>
+        {mgToUnit(item.weight, item.authorUnit).toFixed(2)} {item.authorUnit}
       </td>
       <td className="col-price">
-        <input
-          className="cell-input cell-price"
-          type="number"
-          step="0.01"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          onBlur={commitPrice}
-        />
+        {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
       </td>
       <td className="col-actions">
+        <button
+          type="button"
+          className="row-action"
+          onClick={(e) => { e.stopPropagation(); onRequestEdit(); }}
+          aria-label="Edit item"
+          title="Edit item"
+        >✎</button>
         <button
           type="button"
           className="row-action"
