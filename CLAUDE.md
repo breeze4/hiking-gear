@@ -16,3 +16,7 @@ When you complete a plan or change its status, update `docs/plans/INDEX.md`:
 - Move the plan between the Completed / In Progress / Not Started sections
 - Keep the table format consistent
 - Do this in the same commit as the plan file changes
+
+## Making changes
+
+Beebaby's deployed version is what my source of truth is for gear. Use that whenever I ask you to fix a gear list or an item or anything like that.
