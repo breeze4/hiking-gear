@@ -433,7 +433,6 @@ function SortableCategory(props: SortableCategoryProps) {
             <thead>
               <tr>
                 <th className="col-drag"></th>
-                <th className="col-qty">Qty</th>
                 <th>Name</th>
                 <th>Description</th>
                 <th className="col-flags">Worn</th>
@@ -517,7 +516,26 @@ function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableR
           {...dragListeners}
         >⋮⋮</button>
       </td>
-      <td className="col-qty">
+      <td>
+        {item.url ? (
+          <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{item.name || '(unnamed)'}</a>
+        ) : (
+          item.name || '(unnamed)'
+        )}
+        {item.priority && (
+          <span className={`pill pill-${String(item.priority).toLowerCase()}`}>{item.priority}</span>
+        )}
+      </td>
+      <td className="col-desc">{item.description}</td>
+      <td className="col-flags">{item.worn ? '✓' : ''}</td>
+      <td className="col-flags">{item.consumable ? '✓' : ''}</td>
+      <td className="col-weight">
+        {mgToUnit(item.weight, item.authorUnit).toFixed(2)} {item.authorUnit}
+      </td>
+      <td className="col-price">
+        {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
+      </td>
+      <td className="col-actions">
         {showQtyControls ? (
           <span className="qty-controls">
             <button
@@ -541,27 +559,6 @@ function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableR
             >+</button>
           </span>
         ) : null}
-      </td>
-      <td>
-        {item.url ? (
-          <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{item.name || '(unnamed)'}</a>
-        ) : (
-          item.name || '(unnamed)'
-        )}
-        {item.priority && (
-          <span className={`pill pill-${String(item.priority).toLowerCase()}`}>{item.priority}</span>
-        )}
-      </td>
-      <td className="col-desc">{item.description}</td>
-      <td className="col-flags">{item.worn ? '✓' : ''}</td>
-      <td className="col-flags">{item.consumable ? '✓' : ''}</td>
-      <td className="col-weight">
-        {mgToUnit(item.weight, item.authorUnit).toFixed(2)} {item.authorUnit}
-      </td>
-      <td className="col-price">
-        {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
-      </td>
-      <td className="col-actions">
         {excluded ? (
           <>
             <button

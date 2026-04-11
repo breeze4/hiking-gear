@@ -160,7 +160,6 @@ table.items thead th {
 @media (prefers-color-scheme: dark) {
   table.items thead th { background: #141414; }
 }
-.col-qty { width: auto; min-width: 4.5rem; text-align: right; white-space: nowrap; }
 .col-flags { width: 3rem; text-align: center; }
 .col-weight { width: 7rem; text-align: right; }
 .col-price { width: 5rem; text-align: right; }
@@ -396,11 +395,12 @@ textarea.inline-text-input { min-height: 3rem; resize: vertical; }
 
 .col-actions {
   width: auto;
-  min-width: 4rem;
+  min-width: 9rem;
   text-align: right;
   white-space: nowrap;
   padding-right: 0.5rem;
 }
+.col-actions .qty-controls { margin-right: 0.4rem; }
 
 .qty-controls {
   display: inline-flex;
@@ -424,7 +424,6 @@ textarea.inline-text-input { min-height: 3rem; resize: vertical; }
 }
 
 .item-row.excluded { opacity: 0.5; }
-.item-row.excluded .col-qty,
 .item-row.excluded .col-desc,
 .item-row.excluded .col-weight,
 .item-row.excluded .col-price { text-decoration: line-through; }
