@@ -14,6 +14,7 @@ When you complete a plan or change its status, move the row between sections and
 | [06](./2026-04-10-06-singleton-flag-end-to-end.md) | Singleton flag end-to-end |
 | [07](./2026-04-10-07-row-edit-modal.md) | Row-edit modal replaces inline editing |
 | [08](./2026-04-10-08-row-controls-leave-off.md) | Singleton-aware row controls + leave-it-off state |
+| [09](./2026-04-11-01-prep-status-foundation.md) | Prep status foundation (schema + resolver + trip view columns) |
 
 ## In Progress
 
@@ -23,7 +24,6 @@ _None._
 
 | Plan | Title |
 |---|---|
-| [09](./2026-04-11-01-prep-status-foundation.md) | Prep status foundation (schema + resolver + trip view columns) |
 | [10](./2026-04-11-02-prep-defaults-at-entry-points.md) | Prep defaults at entry points (import + template + clone + backfill) |
 | [11](./2026-04-11-03-prep-progress-and-condensation.md) | Prep progress counters and fully-prepped row condensation |
 | [12](./2026-04-11-04-row-edit-weight-weighed-coupling.md) | Row-edit modal weight ↔ weighed auto-coupling |

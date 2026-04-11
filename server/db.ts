@@ -103,6 +103,41 @@ db.exec(`
   }
 }
 
+{
+  const cols = db.prepare('PRAGMA table_info(items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'acquired')) {
+    db.exec('ALTER TABLE items ADD COLUMN acquired INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
+{
+  const cols = db.prepare('PRAGMA table_info(items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'weighed')) {
+    db.exec('ALTER TABLE items ADD COLUMN weighed INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
+{
+  const cols = db.prepare('PRAGMA table_info(category_items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'acquired')) {
+    db.exec('ALTER TABLE category_items ADD COLUMN acquired INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
+{
+  const cols = db.prepare('PRAGMA table_info(category_items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'weighed')) {
+    db.exec('ALTER TABLE category_items ADD COLUMN weighed INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
+{
+  const cols = db.prepare('PRAGMA table_info(category_items)').all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === 'packed')) {
+    db.exec('ALTER TABLE category_items ADD COLUMN packed INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
 export function setSetting(key: string, value: string) {
   db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
 }

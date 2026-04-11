@@ -43,20 +43,20 @@ From `docs/specs/2026-04-11-01-prep-for-trip.md`:
 
 ## Acceptance criteria
 
-- [ ] `npx tsc --noEmit` clean.
-- [ ] `npm test` runs the resolver unit tests and they pass.
-- [ ] Schema: `PRAGMA table_info(items)` shows `acquired`, `weighed` columns. `PRAGMA table_info(category_items)` shows `acquired`, `weighed`, `packed`.
-- [ ] Fresh DB and existing DB both start the app without error (idempotent migrations).
-- [ ] `GET /api/lists/:id` returns each category-item with `acquired`, `weighed`, `packed`, and an `effective` object. For a singleton item with `items.acquired=1`, the response has `effective.acquired=true`. For a non-singleton item with `category_items.acquired=1`, the response has `effective.acquired=true`. Verify both cases manually against a seeded row.
-- [ ] `PUT /api/category_items/:catId/:itemId` accepts `{ acquired, weighed, packed }` in the body and writes to `category_items` only.
-- [ ] `PUT /api/items/:id` accepts `{ acquired, weighed }` in the body and writes to `items` only.
-- [ ] Resolver unit tests cover: (a) singleton=true, all combos of effective.acquired/weighed sourced from items; (b) singleton=false, all combos sourced from category_items; (c) packed always sourced from categoryItem regardless of singleton; (d) writeTarget returns the matching table name for each field.
-- [ ] Trip view renders three new columns: "Acq", "Wgh", "Pkd" between the "Cons" column and the "Weight" column.
-- [ ] Each cell shows the unchecked or checked glyph based on `effective.*`.
-- [ ] Clicking a cell optimistically flips the state and sends the correct PATCH (items or category_items) based on the resolver's `writeTarget`. On server error, the UI rolls back (matches existing `onPatchCi` error recovery).
-- [ ] Excluded rows (`qty=0`) render the prep columns as empty cells (no icon), not clickable.
-- [ ] No visible regression in existing trip view behavior: weight totals, row-edit modal, quantity controls, drag-reorder, category headers, category delete all still work.
-- [ ] Build, typecheck, commit, deploy per the project-level working rule.
+- [x] `npx tsc --noEmit` clean.
+- [x] `npm test` runs the resolver unit tests and they pass.
+- [x] Schema: `PRAGMA table_info(items)` shows `acquired`, `weighed` columns. `PRAGMA table_info(category_items)` shows `acquired`, `weighed`, `packed`.
+- [x] Fresh DB and existing DB both start the app without error (idempotent migrations).
+- [x] `GET /api/lists/:id` returns each category-item with `acquired`, `weighed`, `packed`, and an `effective` object. For a singleton item with `items.acquired=1`, the response has `effective.acquired=true`. For a non-singleton item with `category_items.acquired=1`, the response has `effective.acquired=true`. Verify both cases manually against a seeded row.
+- [x] `PUT /api/category_items/:catId/:itemId` accepts `{ acquired, weighed, packed }` in the body and writes to `category_items` only.
+- [x] `PUT /api/items/:id` accepts `{ acquired, weighed }` in the body and writes to `items` only.
+- [x] Resolver unit tests cover: (a) singleton=true, all combos of effective.acquired/weighed sourced from items; (b) singleton=false, all combos sourced from category_items; (c) packed always sourced from categoryItem regardless of singleton; (d) writeTarget returns the matching table name for each field.
+- [x] Trip view renders three new columns: "Acq", "Wgh", "Pkd" between the "Cons" column and the "Weight" column.
+- [x] Each cell shows the unchecked or checked glyph based on `effective.*`.
+- [x] Clicking a cell optimistically flips the state and sends the correct PATCH (items or category_items) based on the resolver's `writeTarget`. On server error, the UI rolls back (matches existing `onPatchCi` error recovery).
+- [x] Excluded rows (`qty=0`) render the prep columns as empty cells (no icon), not clickable.
+- [x] No visible regression in existing trip view behavior: weight totals, row-edit modal, quantity controls, drag-reorder, category headers, category delete all still work.
+- [x] Build, typecheck, commit, deploy per the project-level working rule.
 
 ## Owns
 
@@ -94,20 +94,20 @@ From `docs/specs/2026-04-11-01-prep-for-trip.md`:
 
 ## Tasks
 
-- [ ] Append schema migrations for `items.acquired`, `items.weighed`, `category_items.acquired`, `category_items.weighed`, `category_items.packed` in `server/db.ts`. Verify the server still starts against the existing dev DB.
-- [ ] Create `src/lib/prep.ts` with `resolvePrepStatus` and exported types. Keep it pure — no imports from server or client code.
-- [ ] Create `src/lib/prep.test.ts` with the resolver truth-table tests (singleton × flag × value), using `node:test` and `node:assert`.
-- [ ] Add a `test` script to `package.json` that runs the test file via tsx. Verify `npm test` passes locally.
-- [ ] Extend the list-detail endpoint SQL to select the five new columns and include them in the response shape. Compute and include `effective` per row using the resolver.
-- [ ] Extend `PUT /api/category_items/:categoryId/:itemId` to accept `acquired`, `weighed`, `packed` fields.
-- [ ] Extend `PUT /api/items/:id` (locate the existing handler) to accept `acquired`, `weighed`.
-- [ ] Extend `CategoryItem` in `src/types.ts` with the raw and `effective` fields.
-- [ ] Add `patchItem` helper in `src/api.ts`.
-- [ ] Add Acq / Wgh / Pkd columns to the trip view items table. Render empty cells for `qty=0` rows; render click-to-toggle buttons otherwise.
-- [ ] Wire click-to-toggle: read `effective.*` to determine current state; call resolver's `writeTarget` to decide whether to PATCH the item or the category-item; optimistic update + rollback on error.
-- [ ] Add CSS for the new column widths and prep-cell visual states (unchecked circle, checked fill, muted color).
-- [ ] Manually smoke-test: click each cell on a couple of rows of different singleton/non-singleton items, verify the correct table is written, verify the UI reflects the change, reload and confirm persistence.
-- [ ] Typecheck, build, commit, deploy.
+- [x] Append schema migrations for `items.acquired`, `items.weighed`, `category_items.acquired`, `category_items.weighed`, `category_items.packed` in `server/db.ts`. Verify the server still starts against the existing dev DB.
+- [x] Create `src/lib/prep.ts` with `resolvePrepStatus` and exported types. Keep it pure — no imports from server or client code.
+- [x] Create `src/lib/prep.test.ts` with the resolver truth-table tests (singleton × flag × value), using `node:test` and `node:assert`.
+- [x] Add a `test` script to `package.json` that runs the test file via tsx. Verify `npm test` passes locally.
+- [x] Extend the list-detail endpoint SQL to select the five new columns and include them in the response shape. Compute and include `effective` per row using the resolver.
+- [x] Extend `PUT /api/category_items/:categoryId/:itemId` to accept `acquired`, `weighed`, `packed` fields.
+- [x] Extend `PUT /api/items/:id` (locate the existing handler) to accept `acquired`, `weighed`.
+- [x] Extend `CategoryItem` in `src/types.ts` with the raw and `effective` fields.
+- [x] Add `patchItem` helper in `src/api.ts`.
+- [x] Add Acq / Wgh / Pkd columns to the trip view items table. Render empty cells for `qty=0` rows; render click-to-toggle buttons otherwise.
+- [x] Wire click-to-toggle: read `effective.*` to determine current state; call resolver's `writeTarget` to decide whether to PATCH the item or the category-item; optimistic update + rollback on error.
+- [x] Add CSS for the new column widths and prep-cell visual states (unchecked circle, checked fill, muted color).
+- [x] Manually smoke-test: click each cell on a couple of rows of different singleton/non-singleton items, verify the correct table is written, verify the UI reflects the change, reload and confirm persistence.
+- [x] Typecheck, build, commit, deploy.
 
 ## Implementation notes
 
@@ -131,3 +131,16 @@ From `docs/specs/2026-04-11-01-prep-for-trip.md`:
 - **Click-to-toggle wiring** — inside the trip view, add a new `onPatchItem(itemId, patch)` handler at the same level as `patchCategoryItem`. It calls `api.patchItem(itemId, patch)` and applies the result to the local draft state. The PrepCell component takes `item`, `categoryItem`, and `field` and chooses which onPatch to call based on `resolvePrepStatus().writeTarget[field]`.
 - **Test script wrinkle** — `node --test --import tsx/esm path/to/test.ts` is the v4 tsx invocation. Verify before committing; fall back to `npx tsx --test src/lib/prep.test.ts` if the `--import` form is broken on the installed tsx.
 - **No default backfill for existing data** — the migration adds the columns with default 0. Existing rows will have `false` for everything. The defaults plan (#2) will retroactively patch lighterpack-imported rows by re-running import or by a one-shot SQL backfill. Do NOT attempt to backfill in this plan.
+
+## Review
+
+Implemented end to end. `npx tsc --noEmit`, `npm test` (5 passing), and `npm run build` all clean. Server migrations verified idempotent against both the existing dev DB and a fresh DB. `GET /api/lists/:id` returns the new raw fields (`itemAcquired`, `itemWeighed`, `ciAcquired`, `ciWeighed`, `packed`) plus computed `effective` and `writeTarget` per row. `PUT /api/items/:id` accepts `acquired`/`weighed`; `PUT /api/category_items/:categoryId/:itemId` accepts `acquired`/`weighed`/`packed`. Trip view renders three new columns (Acq/Wgh/Pkd) between Cons and Weight; cells are click-to-toggle with an optimistic update that dispatches to `patchItem` or `patchCategoryItem` based on the server-shipped `writeTarget`. Excluded rows render empty `<td>` cells.
+
+Deviations from the plan, all documented in `docs/handoff/step-1-prep-foundation.md`:
+
+- `CategoryItem` carries raw side-specific fields (`itemAcquired`, `itemWeighed`, `ciAcquired`, `ciWeighed`, `packed`) instead of collapsing to a single `acquired`/`weighed`/`packed` trio, to avoid the naming ambiguity. UI reads `effective.*` for display.
+- `writeTarget` is computed server-side and shipped on the payload; client calls the resolver only from unit tests.
+- `api.patchItem` is an alias for `api.updateItem` so both names resolve to the same endpoint.
+- `GET /api/items`, `GET /api/items/all`, and `rowItem` were also extended to include `acquired`/`weighed` — required to satisfy the widened `Item` type. No behavior change beyond the extra columns in the SELECT and the response mapping.
+
+Kept strictly out of scope: `RowEditModal` (step 5), lighterpack/template/clone backfill (step 2), progress counters (step 4), `/to-buy` (step 7).

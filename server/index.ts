@@ -3,6 +3,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { db, getSetting } from './db.js';
+import { resolvePrepStatus } from '../src/lib/prep.js';
 
 type ListRow = {
   id: number;
@@ -38,6 +39,11 @@ type CategoryItemRow = {
   image_url: string;
   url: string;
   singleton: number;
+  itemAcquired: number;
+  itemWeighed: number;
+  ciAcquired: number;
+  ciWeighed: number;
+  packed: number;
 };
 
 const app = new Hono();
@@ -88,7 +94,12 @@ app.get('/api/lists/:id', (c) => {
       i.image,
       i.image_url AS imageUrl,
       i.url,
-      i.singleton
+      i.singleton,
+      i.acquired AS itemAcquired,
+      i.weighed AS itemWeighed,
+      ci.acquired AS ciAcquired,
+      ci.weighed AS ciWeighed,
+      ci.packed
     FROM category_items ci
     JOIN items i ON i.id = ci.item_id
     WHERE ci.category_id IN (SELECT id FROM categories WHERE list_id = ?)
@@ -110,24 +121,43 @@ app.get('/api/lists/:id', (c) => {
       name: cat.name,
       color: cat.color ? JSON.parse(cat.color) : null,
       position: cat.position,
-      items: (byCategory.get(cat.id) ?? []).map((it) => ({
-        itemId: it.itemId,
-        name: it.name,
-        description: it.description,
-        weight: it.weight,
-        authorUnit: it.authorUnit,
-        price: it.price,
-        image: it.image,
-        imageUrl: it.imageUrl,
-        url: it.url,
-        singleton: !!it.singleton,
-        qty: it.qty,
-        worn: !!it.worn,
-        consumable: !!it.consumable,
-        star: it.star,
-        position: it.position,
-        priority: it.priority,
-      })),
+      items: (byCategory.get(cat.id) ?? []).map((it) => {
+        const singleton = !!it.singleton;
+        const itemAcquired = !!it.itemAcquired;
+        const itemWeighed = !!it.itemWeighed;
+        const ciAcquired = !!it.ciAcquired;
+        const ciWeighed = !!it.ciWeighed;
+        const packed = !!it.packed;
+        const prep = resolvePrepStatus(
+          { singleton, acquired: itemAcquired, weighed: itemWeighed },
+          { acquired: ciAcquired, weighed: ciWeighed, packed },
+        );
+        return {
+          itemId: it.itemId,
+          name: it.name,
+          description: it.description,
+          weight: it.weight,
+          authorUnit: it.authorUnit,
+          price: it.price,
+          image: it.image,
+          imageUrl: it.imageUrl,
+          url: it.url,
+          singleton,
+          qty: it.qty,
+          worn: !!it.worn,
+          consumable: !!it.consumable,
+          star: it.star,
+          position: it.position,
+          priority: it.priority,
+          itemAcquired,
+          itemWeighed,
+          ciAcquired,
+          ciWeighed,
+          packed,
+          effective: prep.effective,
+          writeTarget: prep.writeTarget,
+        };
+      }),
     })),
   });
 });
@@ -358,12 +388,16 @@ const ITEM_FIELDS: Record<string, string> = {
   imageUrl: 'image_url',
   image: 'image',
   singleton: 'singleton',
+  acquired: 'acquired',
+  weighed: 'weighed',
 };
 
+const ITEM_BOOLEAN_FIELDS = new Set(['singleton', 'acquired', 'weighed']);
+
 function rowItem(id: number) {
-  const row = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton FROM items WHERE id = ?').get(id) as any;
+  const row = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items WHERE id = ?').get(id) as any;
   if (!row) return null;
-  return { ...row, singleton: !!row.singleton };
+  return { ...row, singleton: !!row.singleton, acquired: !!row.acquired, weighed: !!row.weighed };
 }
 
 app.post('/api/items', async (c) => {
@@ -398,7 +432,7 @@ app.put('/api/items/:id', async (c) => {
       const n = Number(v);
       if (!Number.isFinite(n)) return badRequest(c, `${key} must be a number`);
       sets.push(`${col} = ?`); args.push(n);
-    } else if (key === 'singleton') {
+    } else if (ITEM_BOOLEAN_FIELDS.has(key)) {
       sets.push(`${col} = ?`); args.push(v ? 1 : 0);
     } else {
       sets.push(`${col} = ?`); args.push(v == null ? '' : String(v));
@@ -414,11 +448,11 @@ app.put('/api/items/:id', async (c) => {
 app.get('/api/items', (c) => {
   const q = (c.req.query('q') ?? '').trim();
   if (q) {
-    const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton FROM items WHERE LOWER(name) LIKE ? ORDER BY name COLLATE NOCASE LIMIT 50').all(`%${q.toLowerCase()}%`) as any[];
-    return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton })));
+    const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items WHERE LOWER(name) LIKE ? ORDER BY name COLLATE NOCASE LIMIT 50').all(`%${q.toLowerCase()}%`) as any[];
+    return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton, acquired: !!r.acquired, weighed: !!r.weighed })));
   }
-  const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton FROM items ORDER BY name COLLATE NOCASE LIMIT 50').all() as any[];
-  return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton })));
+  const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items ORDER BY name COLLATE NOCASE LIMIT 50').all() as any[];
+  return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton, acquired: !!r.acquired, weighed: !!r.weighed })));
 });
 
 function joinedCategoryItem(categoryId: number, itemId: number) {
@@ -440,7 +474,12 @@ function joinedCategoryItem(categoryId: number, itemId: number) {
       i.image,
       i.image_url AS imageUrl,
       i.url,
-      i.singleton
+      i.singleton,
+      i.acquired AS itemAcquired,
+      i.weighed AS itemWeighed,
+      ci.acquired AS ciAcquired,
+      ci.weighed AS ciWeighed,
+      ci.packed
     FROM category_items ci JOIN items i ON i.id = ci.item_id
     WHERE ci.category_id = ? AND ci.item_id = ?
   `).get(categoryId, itemId) as any;
@@ -448,6 +487,16 @@ function joinedCategoryItem(categoryId: number, itemId: number) {
 
 function shapeCategoryItem(row: any) {
   if (!row) return null;
+  const singleton = !!row.singleton;
+  const itemAcquired = !!row.itemAcquired;
+  const itemWeighed = !!row.itemWeighed;
+  const ciAcquired = !!row.ciAcquired;
+  const ciWeighed = !!row.ciWeighed;
+  const packed = !!row.packed;
+  const prep = resolvePrepStatus(
+    { singleton, acquired: itemAcquired, weighed: itemWeighed },
+    { acquired: ciAcquired, weighed: ciWeighed, packed },
+  );
   return {
     itemId: row.itemId,
     name: row.name,
@@ -458,13 +507,20 @@ function shapeCategoryItem(row: any) {
     image: row.image,
     imageUrl: row.imageUrl,
     url: row.url,
-    singleton: !!row.singleton,
+    singleton,
     qty: row.qty,
     worn: !!row.worn,
     consumable: !!row.consumable,
     star: row.star,
     position: row.position,
     priority: row.priority,
+    itemAcquired,
+    itemWeighed,
+    ciAcquired,
+    ciWeighed,
+    packed,
+    effective: prep.effective,
+    writeTarget: prep.writeTarget,
   };
 }
 
@@ -505,6 +561,9 @@ app.put('/api/category_items/:categoryId/:itemId', async (c) => {
   if ('worn' in body) { sets.push('worn = ?'); args.push(body.worn ? 1 : 0); }
   if ('consumable' in body) { sets.push('consumable = ?'); args.push(body.consumable ? 1 : 0); }
   if ('star' in body) { sets.push('star = ?'); args.push(body.star ? 1 : 0); }
+  if ('acquired' in body) { sets.push('acquired = ?'); args.push(body.acquired ? 1 : 0); }
+  if ('weighed' in body) { sets.push('weighed = ?'); args.push(body.weighed ? 1 : 0); }
+  if ('packed' in body) { sets.push('packed = ?'); args.push(body.packed ? 1 : 0); }
   if (sets.length) {
     args.push(categoryId, itemId);
     db.prepare(`UPDATE category_items SET ${sets.join(', ')} WHERE category_id = ? AND item_id = ?`).run(...args);
@@ -520,13 +579,14 @@ app.get('/api/items/all', (c) => {
       i.id, i.name, i.description, i.weight,
       i.author_unit AS authorUnit, i.price,
       i.image, i.image_url AS imageUrl, i.url, i.singleton,
+      i.acquired, i.weighed,
       COUNT(ci.item_id) AS usedIn
     FROM items i
     LEFT JOIN category_items ci ON ci.item_id = i.id
     GROUP BY i.id
     ORDER BY i.name COLLATE NOCASE
   `).all() as any[];
-  return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton })));
+  return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton, acquired: !!r.acquired, weighed: !!r.weighed })));
 });
 
 app.get('/api/items/:id/usage', (c) => {
