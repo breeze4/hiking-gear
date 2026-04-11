@@ -74,4 +74,8 @@ export const api = {
   itemsAll: () => get<ItemWithUsage[]>('/api/items/all'),
   itemUsage: (id: number) => get<ItemUsage[]>(`/api/items/${id}/usage`),
   deleteItem: (id: number) => send<{ ok: true }>('DELETE', `/api/items/${id}`),
+
+  fetchToBuy: () => get<Array<{ item: Item; neededQty: number }>>('/api/to-buy'),
+  acquireFromToBuy: (itemId: number) =>
+    send<{ itemsAffected: number; categoryItemsAffected: number }>('POST', '/api/to-buy/acquire', { itemId }),
 };
