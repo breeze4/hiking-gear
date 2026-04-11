@@ -13,7 +13,11 @@
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"],
     "types": ["node"],
-    "allowJs": false
+    "allowJs": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["server/**/*.ts", "src/**/*.ts", "src/**/*.tsx", "vite.config.ts"]
 }

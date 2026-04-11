@@ -6,6 +6,8 @@ Access: `http://beebaby:8002/`
 
 Stack: Hono + better-sqlite3 on the server (`server/`), React + Vite on the client (`src/`). SQLite file at `data/hiking-gear.db`. Schema migrations live inline in `server/db.ts` as idempotent PRAGMA-check + ALTER blocks — append new ones; don't rewrite existing ones.
 
+Build, test, commit, deploy after each change made
+
 ## Plans
 
 All implementation plans live in `docs/plans/` with an index at `docs/plans/INDEX.md`.

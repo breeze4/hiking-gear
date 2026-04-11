@@ -14,10 +14,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Minus, Pencil, Plus, RotateCcw, Trash2, X, CircleSlash } from 'lucide-react';
 import { api } from './api';
 import { AddItemModal } from './AddItemModal';
 import { InlineText } from './InlineText';
 import { RowEditModal } from './RowEditModal';
+import { Button } from '@/components/ui/button';
 import type { Category, CategoryItem, ListDetail, ListSummary, Settings } from './types';
 import { formatWeight, mgToUnit } from './weight';
 
@@ -418,13 +420,17 @@ function SortableCategory(props: SortableCategoryProps) {
           <span>{formatWeight(t.weight, totalUnit)}</span>
           <span>•</span>
           <span>{t.qty} items</span>
-          <button
+          <Button
             type="button"
-            className="row-action category-delete"
+            variant="ghost"
+            size="icon"
+            className="category-delete text-muted-foreground hover:text-destructive"
             onClick={onDelete}
             aria-label="Delete category"
             title="Delete category"
-          >×</button>
+          >
+            <X />
+          </Button>
         </div>
       </header>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onItemsReorder}>
@@ -536,62 +542,88 @@ function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableR
         {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
       </td>
       <td className="col-actions">
-        {showQtyControls ? (
-          <span className="qty-controls">
-            <button
+        <div className="row-actions">
+          {showQtyControls ? (
+            <div className="qty-controls">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Decrease qty"
+                title="Decrease qty"
+                disabled={item.qty <= 1}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (item.qty > 1) onPatchCi({ qty: item.qty - 1 });
+                }}
+              >
+                <Minus />
+              </Button>
+              <span className="qty-num">{item.qty}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                aria-label="Increase qty"
+                title="Increase qty"
+                onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: item.qty + 1 }); }}
+              >
+                <Plus />
+              </Button>
+            </div>
+          ) : null}
+          {excluded ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Keep it"
+                title="Keep it (restore to qty 1)"
+                onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 1 }); }}
+              >
+                <RotateCcw />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="Remove item"
+                title="Remove from category"
+                onClick={(e) => { e.stopPropagation(); onUnlink(); }}
+              >
+                <Trash2 />
+              </Button>
+            </>
+          ) : (
+            <Button
               type="button"
-              className="row-action qty-step"
-              aria-label="Decrease qty"
-              title="Decrease qty"
-              disabled={item.qty <= 1}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (item.qty > 1) onPatchCi({ qty: item.qty - 1 });
-              }}
-            >−</button>
-            <span className="qty-num">{item.qty}</span>
-            <button
-              type="button"
-              className="row-action qty-step"
-              aria-label="Increase qty"
-              title="Increase qty"
-              onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: item.qty + 1 }); }}
-            >+</button>
-          </span>
-        ) : null}
-        {excluded ? (
-          <>
-            <button
-              type="button"
-              className="row-action"
-              aria-label="Keep it"
-              title="Keep it (restore to qty 1)"
-              onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 1 }); }}
-            >↺</button>
-            <button
-              type="button"
-              className="row-action"
-              aria-label="Remove item"
-              title="Remove from category"
-              onClick={(e) => { e.stopPropagation(); onUnlink(); }}
-            >🗑</button>
-          </>
-        ) : (
-          <button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Set to zero"
+              title="Set to zero (leave it off)"
+              onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 0 }); }}
+            >
+              <CircleSlash />
+            </Button>
+          )}
+          <Button
             type="button"
-            className="row-action"
-            aria-label="Set to zero"
-            title="Set to zero (leave it off)"
-            onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 0 }); }}
-          >⊘</button>
-        )}
-        <button
-          type="button"
-          className="row-action"
-          onClick={(e) => { e.stopPropagation(); onRequestEdit(); }}
-          aria-label="Edit item"
-          title="Edit item"
-        >✎</button>
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={(e) => { e.stopPropagation(); onRequestEdit(); }}
+            aria-label="Edit item"
+            title="Edit item"
+          >
+            <Pencil />
+          </Button>
+        </div>
       </td>
     </tr>
   );
