@@ -1,0 +1,15 @@
+[Unit]
+Description=Hiking Gear
+
+[Service]
+Type=simple
+WorkingDirectory=%h/dev/hiking-gear
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=8002
+Environment=DB_PATH=%h/dev/hiking-gear/data/hiking-gear.db
+
+[Install]
+WantedBy=default.target
