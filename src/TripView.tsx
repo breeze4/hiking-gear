@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Minus, Pencil, Plus, RotateCcw, Trash2, X, CircleSlash } from 'lucide-react';
+import { CheckCircle2, Circle, Minus, Pencil, Plus, RotateCcw, Trash2, X, CircleSlash } from 'lucide-react';
 import { api } from './api';
 import { AddItemModal } from './AddItemModal';
 import { InlineText } from './InlineText';
@@ -22,6 +22,17 @@ import { RowEditModal } from './RowEditModal';
 import { Button } from '@/components/ui/button';
 import type { Category, CategoryItem, ListDetail, ListSummary, Settings } from './types';
 import { formatWeight, mgToUnit } from './weight';
+
+type PrepField = 'acquired' | 'weighed' | 'packed';
+type CategoryItemPatch = {
+  qty?: number;
+  worn?: boolean;
+  consumable?: boolean;
+  acquired?: boolean;
+  weighed?: boolean;
+  packed?: boolean;
+};
+type ItemPatch = { acquired?: boolean; weighed?: boolean };
 
 type Props = {
   list: ListDetail;
@@ -131,17 +142,67 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
     }
   }
 
-  async function patchCategoryItem(catId: number, itemId: number, patch: { qty?: number; worn?: boolean; consumable?: boolean }) {
+  async function patchCategoryItem(catId: number, itemId: number, patch: CategoryItemPatch) {
     const prev = draft;
     setDraft({
       ...draft,
       categories: draft.categories.map((c) => c.id !== catId ? c : {
         ...c,
-        items: c.items.map((it) => it.itemId !== itemId ? it : { ...it, ...patch } as CategoryItem),
+        items: c.items.map((it) => {
+          if (it.itemId !== itemId) return it;
+          const nextCiAcquired = 'acquired' in patch ? !!patch.acquired : it.ciAcquired;
+          const nextCiWeighed = 'weighed' in patch ? !!patch.weighed : it.ciWeighed;
+          const nextPacked = 'packed' in patch ? !!patch.packed : it.packed;
+          const next: CategoryItem = {
+            ...it,
+            ...patch,
+            ciAcquired: nextCiAcquired,
+            ciWeighed: nextCiWeighed,
+            packed: nextPacked,
+            effective: {
+              acquired: it.singleton ? it.itemAcquired : nextCiAcquired,
+              weighed: it.singleton ? it.itemWeighed : nextCiWeighed,
+              packed: nextPacked,
+            },
+          };
+          return next;
+        }),
       }),
     });
     try {
       await api.updateCategoryItem(catId, itemId, patch);
+    } catch (e) {
+      setDraft(prev);
+      handleErr(e);
+    }
+  }
+
+  async function patchItem(itemId: number, patch: ItemPatch) {
+    const prev = draft;
+    setDraft({
+      ...draft,
+      categories: draft.categories.map((c) => ({
+        ...c,
+        items: c.items.map((it) => {
+          if (it.itemId !== itemId) return it;
+          const nextItemAcquired = 'acquired' in patch ? !!patch.acquired : it.itemAcquired;
+          const nextItemWeighed = 'weighed' in patch ? !!patch.weighed : it.itemWeighed;
+          const next: CategoryItem = {
+            ...it,
+            itemAcquired: nextItemAcquired,
+            itemWeighed: nextItemWeighed,
+            effective: {
+              acquired: it.singleton ? nextItemAcquired : it.ciAcquired,
+              weighed: it.singleton ? nextItemWeighed : it.ciWeighed,
+              packed: it.packed,
+            },
+          };
+          return next;
+        }),
+      })),
+    });
+    try {
+      await api.patchItem(itemId, patch);
     } catch (e) {
       setDraft(prev);
       handleErr(e);
@@ -325,6 +386,7 @@ export function TripView({ list, settings, onListChanged, onClone, onDelete, onA
               onDelete={() => deleteCategory(cat.id)}
               onAddItem={() => setAddItemForCat(cat.id)}
               onPatchCi={(itemId, patch) => patchCategoryItem(cat.id, itemId, patch)}
+              onPatchItem={(itemId, patch) => patchItem(itemId, patch)}
               onUnlink={(itemId) => unlinkItem(cat.id, itemId)}
               onItemsReorder={(ev) => reorderItems(cat.id, ev)}
               sensors={sensors}
@@ -380,7 +442,8 @@ type SortableCategoryProps = {
   onRename: (v: string) => void;
   onDelete: () => void;
   onAddItem: () => void;
-  onPatchCi: (itemId: number, patch: { qty?: number; worn?: boolean; consumable?: boolean }) => void;
+  onPatchCi: (itemId: number, patch: CategoryItemPatch) => void;
+  onPatchItem: (itemId: number, patch: ItemPatch) => void;
   onUnlink: (itemId: number) => void;
   onItemsReorder: (event: DragEndEvent) => void;
   sensors: ReturnType<typeof useSensors>;
@@ -388,7 +451,7 @@ type SortableCategoryProps = {
 };
 
 function SortableCategory(props: SortableCategoryProps) {
-  const { cat, currency, totalUnit, autoFocusName, onRename, onDelete, onAddItem, onPatchCi, onUnlink, onItemsReorder, sensors, onRequestEdit } = props;
+  const { cat, currency, totalUnit, autoFocusName, onRename, onDelete, onAddItem, onPatchCi, onPatchItem, onUnlink, onItemsReorder, sensors, onRequestEdit } = props;
   const sortable = useSortable({ id: cat.id });
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
@@ -443,6 +506,9 @@ function SortableCategory(props: SortableCategoryProps) {
                 <th>Description</th>
                 <th className="col-flags">Worn</th>
                 <th className="col-flags">Cons</th>
+                <th className="col-prep">Acq</th>
+                <th className="col-prep">Wgh</th>
+                <th className="col-prep">Pkd</th>
                 <th className="col-weight">Weight</th>
                 <th className="col-price">Price</th>
                 <th className="col-actions"></th>
@@ -456,6 +522,7 @@ function SortableCategory(props: SortableCategoryProps) {
                   categoryId={cat.id}
                   currency={currency}
                   onPatchCi={(patch) => onPatchCi(it.itemId, patch)}
+                  onPatchItem={(patch) => onPatchItem(it.itemId, patch)}
                   onUnlink={() => onUnlink(it.itemId)}
                   onRequestEdit={() => onRequestEdit(it.itemId)}
                 />
@@ -475,7 +542,8 @@ type ItemRowProps = {
   item: CategoryItem;
   categoryId: number;
   currency: string;
-  onPatchCi: (patch: { qty?: number; worn?: boolean; consumable?: boolean }) => void;
+  onPatchCi: (patch: CategoryItemPatch) => void;
+  onPatchItem: (patch: ItemPatch) => void;
   onUnlink: () => void;
   onRequestEdit: () => void;
 };
@@ -505,10 +573,20 @@ type ItemRowExtraProps = ItemRowProps & {
   dragListeners?: Record<string, any>;
 };
 
-function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
+function ItemRow({ item, currency, onPatchCi, onPatchItem, onUnlink, onRequestEdit, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
   const excluded = item.qty === 0;
   const isSingletonDefault = item.singleton && item.qty === 1;
   const showQtyControls = !excluded && !isSingletonDefault;
+
+  const togglePrep = (field: PrepField) => {
+    const next = !item.effective[field];
+    const target = item.writeTarget[field];
+    if (target === 'item') {
+      onPatchItem({ [field]: next } as ItemPatch);
+    } else {
+      onPatchCi({ [field]: next } as CategoryItemPatch);
+    }
+  };
 
   return (
     <tr ref={sortableRef} style={sortableStyle} className={`item-row${excluded ? ' excluded' : ''}`}>
@@ -535,6 +613,25 @@ function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableR
       <td className="col-desc">{item.description}</td>
       <td className="col-flags">{item.worn ? '✓' : ''}</td>
       <td className="col-flags">{item.consumable ? '✓' : ''}</td>
+      {excluded ? (
+        <>
+          <td className="col-prep" />
+          <td className="col-prep" />
+          <td className="col-prep" />
+        </>
+      ) : (
+        <>
+          <td className="col-prep">
+            <PrepCell label="Acquired" checked={item.effective.acquired} onToggle={() => togglePrep('acquired')} />
+          </td>
+          <td className="col-prep">
+            <PrepCell label="Weighed" checked={item.effective.weighed} onToggle={() => togglePrep('weighed')} />
+          </td>
+          <td className="col-prep">
+            <PrepCell label="Packed" checked={item.effective.packed} onToggle={() => togglePrep('packed')} />
+          </td>
+        </>
+      )}
       <td className="col-weight">
         {mgToUnit(item.weight, item.authorUnit).toFixed(2)} {item.authorUnit}
       </td>
@@ -626,6 +723,23 @@ function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableR
         </div>
       </td>
     </tr>
+  );
+}
+
+function PrepCell({ label, checked, onToggle }: { label: string; checked: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={`prep-cell-button${checked ? ' prep-checked' : ''}`}
+      aria-label={label}
+      aria-pressed={checked}
+      title={label}
+      onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    >
+      {checked ? <CheckCircle2 /> : <Circle />}
+    </Button>
   );
 }
 

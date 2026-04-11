@@ -48,12 +48,14 @@ export const api = {
     send<Item>('POST', '/api/items', body),
   updateItem: (id: number, body: Partial<Omit<Item, 'id'>>) =>
     send<Item>('PUT', `/api/items/${id}`, body),
+  patchItem: (id: number, body: Partial<Omit<Item, 'id'>>) =>
+    send<Item>('PUT', `/api/items/${id}`, body),
   searchItems: (q: string) =>
     get<Item[]>(`/api/items?q=${encodeURIComponent(q)}`),
 
   linkCategoryItem: (body: { categoryId: number; itemId: number; qty?: number; worn?: boolean; consumable?: boolean }) =>
     send<CategoryItem>('POST', '/api/category_items', body),
-  updateCategoryItem: (categoryId: number, itemId: number, body: { qty?: number; worn?: boolean; consumable?: boolean; star?: boolean }) =>
+  updateCategoryItem: (categoryId: number, itemId: number, body: { qty?: number; worn?: boolean; consumable?: boolean; star?: boolean; acquired?: boolean; weighed?: boolean; packed?: boolean }) =>
     send<CategoryItem>('PUT', `/api/category_items/${categoryId}/${itemId}`, body),
   unlinkCategoryItem: (categoryId: number, itemId: number) =>
     send<{ ok: true }>('DELETE', `/api/category_items/${categoryId}/${itemId}`),

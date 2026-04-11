@@ -234,6 +234,24 @@ table.items thead th {
   table.items thead th { background: #141414; }
 }
 .col-flags { width: 3rem; text-align: center; }
+.col-prep { width: 2.75rem; text-align: center; padding-left: 0.25rem !important; padding-right: 0.25rem !important; }
+.prep-cell-button {
+  color: #bbb;
+  opacity: 0.55;
+  transition: color 0.1s, opacity 0.1s;
+  height: 1.85rem;
+  width: 1.85rem;
+}
+.item-row:hover .prep-cell-button { opacity: 0.9; }
+.prep-cell-button:hover { color: #555; opacity: 1; }
+.prep-cell-button.prep-checked { color: #2c6e49; opacity: 1; }
+.prep-cell-button.prep-checked:hover { color: #1f4f34; }
+@media (prefers-color-scheme: dark) {
+  .prep-cell-button { color: #555; }
+  .prep-cell-button:hover { color: #bbb; }
+  .prep-cell-button.prep-checked { color: #7cc29e; }
+  .prep-cell-button.prep-checked:hover { color: #a3d9b8; }
+}
 .col-weight { width: 7rem; text-align: right; }
 .col-price { width: 5rem; text-align: right; }
 .col-desc { color: #777; font-size: 0.88rem; }
