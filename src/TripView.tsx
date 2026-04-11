@@ -500,9 +500,13 @@ type ItemRowExtraProps = ItemRowProps & {
   dragListeners?: Record<string, any>;
 };
 
-function ItemRow({ item, currency, onUnlink, onRequestEdit, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
+function ItemRow({ item, currency, onPatchCi, onUnlink, onRequestEdit, sortableRef, sortableStyle, dragAttributes, dragListeners }: ItemRowExtraProps) {
+  const excluded = item.qty === 0;
+  const isSingletonDefault = item.singleton && item.qty === 1;
+  const showQtyControls = !excluded && !isSingletonDefault;
+
   return (
-    <tr ref={sortableRef} style={sortableStyle} className="item-row">
+    <tr ref={sortableRef} style={sortableStyle} className={`item-row${excluded ? ' excluded' : ''}`}>
       <td className="col-drag">
         <button
           type="button"
@@ -513,7 +517,31 @@ function ItemRow({ item, currency, onUnlink, onRequestEdit, sortableRef, sortabl
           {...dragListeners}
         >⋮⋮</button>
       </td>
-      <td className="col-qty">{item.qty}</td>
+      <td className="col-qty">
+        {showQtyControls ? (
+          <span className="qty-controls">
+            <button
+              type="button"
+              className="row-action qty-step"
+              aria-label="Decrease qty"
+              title="Decrease qty"
+              disabled={item.qty <= 1}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (item.qty > 1) onPatchCi({ qty: item.qty - 1 });
+              }}
+            >−</button>
+            <span className="qty-num">{item.qty}</span>
+            <button
+              type="button"
+              className="row-action qty-step"
+              aria-label="Increase qty"
+              title="Increase qty"
+              onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: item.qty + 1 }); }}
+            >+</button>
+          </span>
+        ) : null}
+      </td>
       <td>
         {item.url ? (
           <a href={item.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{item.name || '(unnamed)'}</a>
@@ -534,6 +562,32 @@ function ItemRow({ item, currency, onUnlink, onRequestEdit, sortableRef, sortabl
         {item.price ? `${currency}${item.price.toFixed(2)}` : ''}
       </td>
       <td className="col-actions">
+        {excluded ? (
+          <>
+            <button
+              type="button"
+              className="row-action"
+              aria-label="Keep it"
+              title="Keep it (restore to qty 1)"
+              onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 1 }); }}
+            >↺</button>
+            <button
+              type="button"
+              className="row-action"
+              aria-label="Remove item"
+              title="Remove from category"
+              onClick={(e) => { e.stopPropagation(); onUnlink(); }}
+            >🗑</button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="row-action"
+            aria-label="Set to zero"
+            title="Set to zero (leave it off)"
+            onClick={(e) => { e.stopPropagation(); onPatchCi({ qty: 0 }); }}
+          >⊘</button>
+        )}
         <button
           type="button"
           className="row-action"
@@ -541,13 +595,6 @@ function ItemRow({ item, currency, onUnlink, onRequestEdit, sortableRef, sortabl
           aria-label="Edit item"
           title="Edit item"
         >✎</button>
-        <button
-          type="button"
-          className="row-action"
-          onClick={(e) => { e.stopPropagation(); onUnlink(); }}
-          aria-label="Remove item"
-          title="Remove from category"
-        >×</button>
       </td>
     </tr>
   );

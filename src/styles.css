@@ -160,7 +160,7 @@ table.items thead th {
 @media (prefers-color-scheme: dark) {
   table.items thead th { background: #141414; }
 }
-.col-qty { width: 3rem; text-align: right; }
+.col-qty { width: auto; min-width: 4.5rem; text-align: right; white-space: nowrap; }
 .col-flags { width: 3rem; text-align: center; }
 .col-weight { width: 7rem; text-align: right; }
 .col-price { width: 5rem; text-align: right; }
@@ -377,7 +377,7 @@ textarea.inline-text-input { min-height: 3rem; resize: vertical; }
   cursor: pointer;
   padding: 0 0.35rem;
   border-radius: 4px;
-  opacity: 0;
+  opacity: 0.35;
   transition: opacity 0.1s;
   line-height: 1;
 }
@@ -385,21 +385,49 @@ textarea.inline-text-input { min-height: 3rem; resize: vertical; }
 .category-header:hover .row-action,
 .row-action:focus { opacity: 1; }
 .row-action:hover { background: #f0d6d3; color: #c0392b; }
+.row-action:disabled {
+  opacity: 0.2 !important;
+  cursor: not-allowed;
+}
+.row-action:disabled:hover { background: transparent; color: #888; }
 @media (prefers-color-scheme: dark) {
   .row-action:hover { background: #3a1a18; }
 }
 
-.col-actions { width: 2rem; text-align: center; }
+.col-actions {
+  width: auto;
+  min-width: 4rem;
+  text-align: right;
+  white-space: nowrap;
+  padding-right: 0.5rem;
+}
 
-.item-row { cursor: pointer; }
+.qty-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  justify-content: flex-end;
+}
+.qty-controls .qty-num {
+  min-width: 1.25rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.row-action.qty-step {
+  font-size: 1rem;
+  padding: 0 0.3rem;
+}
+
 .item-row:hover { background: #fafafa; }
 @media (prefers-color-scheme: dark) {
   .item-row:hover { background: #1f1f1f; }
 }
-.item-row-editing { background: #f3f7fb; }
-@media (prefers-color-scheme: dark) {
-  .item-row-editing { background: #1a2230; }
-}
+
+.item-row.excluded { opacity: 0.5; }
+.item-row.excluded .col-qty,
+.item-row.excluded .col-desc,
+.item-row.excluded .col-weight,
+.item-row.excluded .col-price { text-decoration: line-through; }
 
 .cell-input {
   font: inherit;
