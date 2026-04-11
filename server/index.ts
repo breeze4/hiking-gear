@@ -341,6 +341,21 @@ app.put('/api/lists/:id', async (c) => {
   return c.json(row);
 });
 
+app.post('/api/lists', async (c) => {
+  const body = await readJson(c);
+  if (!body || typeof body !== 'object') return badRequest(c, 'invalid json');
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!name) return badRequest(c, 'name is required');
+  const description = typeof body.description === 'string' ? body.description : '';
+
+  const maxRow = db.prepare('SELECT COALESCE(MAX(id), 0) AS maxId FROM lists').get() as { maxId: number };
+  const newListId = maxRow.maxId + 1;
+  db.prepare('INSERT INTO lists (id, name, description, external_id, position) VALUES (?, ?, ?, ?, ?)').run(newListId, name, description, '', 0);
+
+  const row = db.prepare('SELECT id, name, description, external_id AS externalId, position FROM lists WHERE id = ?').get(newListId);
+  return c.json(row);
+});
+
 app.post('/api/categories', async (c) => {
   const body = await readJson(c);
   if (!body || typeof body !== 'object') return badRequest(c, 'invalid json');
