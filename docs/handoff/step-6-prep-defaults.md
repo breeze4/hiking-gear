@@ -59,7 +59,20 @@ Environment: ran server from main repo against a copy of `data/hiking-gear.db` a
 
 ## Production verification
 
-Deferred — this handoff is written before deploy. The orchestrator / step 6 gate will run `./deploy/deploy.sh` and can verify on beebaby that the backfill flipped real lighterpack-imported rows. Check by SSH'ing to beebaby and running `sqlite3 ~/.../data/hiking-gear.db "SELECT COUNT(*) FROM items WHERE acquired=1; SELECT value FROM settings WHERE key='prep_backfill_done';"`. Expected: item count matches total, flag=1.
+Deployed via `./deploy/deploy.sh` and verified on beebaby:
+
+```
+items: 274/274 acquired, 274/274 weighed
+category_items: 1789/1789 acquired, 1789/1789 weighed, 0 packed
+settings.prep_backfill_done = 1
+```
+
+Query used:
+```bash
+ssh beebaby 'sqlite3 ~/dev/hiking-gear/data/hiking-gear.db "SELECT (SELECT COUNT(*) FROM items) AS items, (SELECT COUNT(*) FROM items WHERE acquired=1) AS i_acq, ..."'
+```
+
+The backfill flipped every lighterpack-imported row on first startup after deploy. Subsequent startups will skip the backfill block because the setting is recorded.
 
 ## Deviations from the plan
 
