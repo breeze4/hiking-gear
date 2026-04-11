@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
 import { db, getSetting } from './db.js';
 import { resolvePrepStatus } from '../src/lib/prep.js';
+import { buildToBuyList, acquireItem } from './prep-aggregator.js';
 
 type ListRow = {
   id: number;
@@ -604,6 +605,19 @@ app.get('/api/items/all', (c) => {
     ORDER BY i.name COLLATE NOCASE
   `).all() as any[];
   return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton, acquired: !!r.acquired, weighed: !!r.weighed })));
+});
+
+app.get('/api/to-buy', (c) => {
+  return c.json(buildToBuyList(db));
+});
+
+app.post('/api/to-buy/acquire', async (c) => {
+  const body = await readJson(c);
+  if (!body || typeof body !== 'object') return badRequest(c, 'invalid json');
+  const itemId = Number(body.itemId);
+  if (!Number.isFinite(itemId)) return badRequest(c, 'itemId required');
+  const result = acquireItem(db, itemId);
+  return c.json(result);
 });
 
 app.get('/api/items/:id/usage', (c) => {
