@@ -25,6 +25,12 @@ export function AddItemModal({ categoryId, onClose, onLinked }: Props) {
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [q]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   async function link(itemId: number) {
     setBusy(true);
     setError(null);
@@ -40,8 +46,8 @@ export function AddItemModal({ categoryId, onClose, onLinked }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="modal">
         <div className="modal-header">
           <h3>Add item</h3>
           <button className="button-icon" onClick={onClose} aria-label="Close">×</button>

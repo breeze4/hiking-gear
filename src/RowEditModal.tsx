@@ -113,8 +113,8 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="modal">
         <div className="modal-header">
           <h3>Edit item</h3>
           <button className="button-icon" onClick={onClose} aria-label="Close">×</button>
