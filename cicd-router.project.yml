@@ -1,0 +1,65 @@
+# cicd-router deploy config for Hiking Gear.
+version: 1
+
+identity:
+  id: hiking-gear
+  name: Hiking Gear
+  repo_path: /Users/breeze/dev/hiking-gear
+
+eligibility:
+  auto_deploy: true
+  branches:
+    - main
+  refs:
+    - refs/heads/main
+
+gates:
+  dependency_path:
+    prepend:
+      - node_modules/.bin
+  stages:
+    - name: project-gates
+      command: bash scripts/cicd-router-gates.sh
+
+deploy:
+  enabled: true
+  host: beebaby
+  directory: dev/hiking-gear
+  source_subdir: .
+  service_unit: hiking-gear.service
+  port: 8002
+  rsync:
+    excludes:
+      - .git/
+      - .local/
+      - node_modules/
+      - data/
+      - screenshots/
+      - .env
+      - reference/template/.cache
+  remote_steps:
+    - name: bootstrap
+      command: bash deploy/remote-bootstrap.sh
+  restart_units:
+    - hiking-gear.service
+  env_files: []
+
+smoke:
+  attempts: 5
+  delay_seconds: 2.0
+  checks:
+    - name: api-health
+      kind: http
+      port: 8002
+      path: /api/health
+      expected_status: 200
+
+publisher:
+  host: beebaby
+  store_path: cicd-router/results.sqlite3
+  logs_path: cicd-router/logs
+  console_port: 8086
+
+self_deploy:
+  is_router: false
+  update_command:

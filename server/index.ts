@@ -49,6 +49,10 @@ type CategoryItemRow = {
 
 const app = new Hono();
 
+app.get('/api/health', (c) => {
+  return c.json({ status: 'ok' });
+});
+
 app.get('/api/settings', (c) => {
   return c.json({
     version: getSetting('version'),
