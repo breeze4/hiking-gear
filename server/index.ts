@@ -5,6 +5,8 @@ import { readFile } from 'node:fs/promises';
 import { db, getSetting } from './db.js';
 import { resolvePrepStatus } from '../src/lib/prep.js';
 import { buildToBuyList, acquireItem } from './prep-aggregator.js';
+import { swaggerUI } from '@hono/swagger-ui';
+import { openApiDocument } from './openapi.js';
 
 type ListRow = {
   id: number;
@@ -775,6 +777,12 @@ app.delete('/api/category_items/:categoryId/:itemId', (c) => {
   db.prepare('DELETE FROM category_items WHERE category_id = ? AND item_id = ?').run(categoryId, itemId);
   return c.json({ ok: true });
 });
+
+// API docs: hand-authored OpenAPI 3 spec + Swagger UI. Registered before the
+// SPA static handler + catch-all below so the production fallback to
+// dist/index.html does not swallow them.
+app.get('/openapi.json', (c) => c.json(openApiDocument));
+app.get('/docs', swaggerUI({ url: '/openapi.json' }));
 
 if (process.env.NODE_ENV === 'production') {
   app.use('/*', serveStatic({ root: './dist' }));
