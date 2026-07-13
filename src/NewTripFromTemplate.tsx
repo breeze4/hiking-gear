@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from './api';
+import { isDefaultTemplateSelection, PRIORITIES } from './lib/priority';
 import { priorityClass } from './TemplateDetail';
 import type { Priority, Template } from './types';
 
-const PRIORITY_ORDER: Priority[] = ['Critical', 'Contingent', 'Suggested', 'Optional', 'Unnecessary'];
-const DEFAULT_CHECKED: Set<string> = new Set(['Critical', 'Contingent']);
+const PRIORITY_ORDER: Priority[] = PRIORITIES;
 
 export function NewTripFromTemplate() {
   const { slug } = useParams<{ slug: string }>();
@@ -26,7 +26,7 @@ export function NewTripFromTemplate() {
       const initial: Record<number, boolean> = {};
       for (const cat of tpl.categories) {
         for (const item of cat.items) {
-          initial[item.id] = DEFAULT_CHECKED.has(item.priority);
+          initial[item.id] = isDefaultTemplateSelection(item.priority);
         }
       }
       setChecked(initial);

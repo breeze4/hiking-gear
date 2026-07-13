@@ -5,7 +5,7 @@ import type { ListDetail, ListSummary, Settings } from './types';
 import { TripView } from './TripView';
 
 export function TripHome() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const requestedListId = searchParams.get('list');
 
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -19,6 +19,15 @@ export function TripHome() {
     return api.lists(showArchived).then(setLists).catch((e) => setError(String(e)));
   }
 
+  function selectList(id: number, replace = false) {
+    setSelectedId(id);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set('list', String(id));
+      return next;
+    }, { replace });
+  }
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([api.settings(), api.lists(showArchived)])
@@ -26,17 +35,24 @@ export function TripHome() {
         if (cancelled) return;
         setSettings(s);
         setLists(l);
-        if (l.length && selectedId == null) {
+        if (l.length) {
           const sorted = [...l].sort((a, b) => b.id - a.id);
           const requested = requestedListId ? Number(requestedListId) : null;
           const initial = requested && sorted.find((x) => x.id === requested) ? requested : sorted[0].id;
           setSelectedId(initial);
+          if (requested !== initial) {
+            setSearchParams((current) => {
+              const next = new URLSearchParams(current);
+              next.set('list', String(initial));
+              return next;
+            }, { replace: true });
+          }
         }
       })
       .catch((e) => setError(String(e)));
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedListId, showArchived]);
+  }, [requestedListId, setSearchParams, showArchived]);
 
   useEffect(() => {
     if (selectedId == null) return;
@@ -51,7 +67,7 @@ export function TripHome() {
 
   async function handleCloned(newList: ListSummary) {
     await refreshLists();
-    setSelectedId(newList.id);
+    selectList(newList.id);
   }
 
   async function handleDeleted() {
@@ -66,10 +82,15 @@ export function TripHome() {
     setLists(remaining);
     if (remaining.length) {
       const sorted = [...remaining].sort((a, b) => b.id - a.id);
-      setSelectedId(sorted[0].id);
+      selectList(sorted[0].id, true);
     } else {
       setSelectedId(null);
       setDetail(null);
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete('list');
+        return next;
+      }, { replace: true });
     }
   }
 
@@ -85,8 +106,17 @@ export function TripHome() {
       const remaining = (lists ?? []).filter((l) => l.id !== selectedId);
       setLists(remaining);
       const sorted = [...remaining].sort((a, b) => b.id - a.id);
-      setSelectedId(sorted.length ? sorted[0].id : null);
-      if (!sorted.length) setDetail(null);
+      if (sorted.length) {
+        selectList(sorted[0].id, true);
+      } else {
+        setSelectedId(null);
+        setDetail(null);
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.delete('list');
+          return next;
+        }, { replace: true });
+      }
     } else {
       await refreshLists();
       setDetail((d) => d ? { ...d, archived } : d);
@@ -102,7 +132,7 @@ export function TripHome() {
         <select
           className="list-switcher"
           value={selectedId ?? ''}
-          onChange={(e) => setSelectedId(Number(e.target.value))}
+          onChange={(e) => selectList(Number(e.target.value))}
         >
           {sortedLists.map((l) => (
             <option key={l.id} value={l.id}>

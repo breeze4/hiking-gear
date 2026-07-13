@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { categoryItemPriority, isPriority } from '../src/lib/priority';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
@@ -564,9 +565,10 @@ app.post('/api/category_items', async (c) => {
   const qty = Number.isFinite(Number(body.qty)) ? Number(body.qty) : 1;
   const worn = body.worn ? 1 : 0;
   const consumable = body.consumable ? 1 : 0;
+  const priority = categoryItemPriority(body.priority);
   const max = db.prepare('SELECT COALESCE(MAX(position), -1) AS maxPos FROM category_items WHERE category_id = ?').get(categoryId) as { maxPos: number };
   const pos = max.maxPos + 1;
-  db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority) VALUES (?, ?, ?, ?, ?, ?, 0, NULL)').run(categoryId, itemId, pos, qty, worn, consumable);
+  db.prepare('INSERT INTO category_items (category_id, item_id, position, qty, worn, consumable, star, priority) VALUES (?, ?, ?, ?, ?, ?, 0, ?)').run(categoryId, itemId, pos, qty, worn, consumable, priority);
   return c.json(shapeCategoryItem(joinedCategoryItem(categoryId, itemId)));
 });
 
@@ -585,6 +587,10 @@ app.put('/api/category_items/:categoryId/:itemId', async (c) => {
   if ('worn' in body) { sets.push('worn = ?'); args.push(body.worn ? 1 : 0); }
   if ('consumable' in body) { sets.push('consumable = ?'); args.push(body.consumable ? 1 : 0); }
   if ('star' in body) { sets.push('star = ?'); args.push(body.star ? 1 : 0); }
+  if ('priority' in body) {
+    if (!isPriority(body.priority)) return badRequest(c, 'invalid priority');
+    sets.push('priority = ?'); args.push(body.priority);
+  }
   if ('acquired' in body) { sets.push('acquired = ?'); args.push(body.acquired ? 1 : 0); }
   if ('weighed' in body) { sets.push('weighed = ?'); args.push(body.weighed ? 1 : 0); }
   if ('packed' in body) { sets.push('packed = ?'); args.push(body.packed ? 1 : 0); }

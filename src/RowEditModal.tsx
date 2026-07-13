@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from './api';
-import type { CategoryItem, Item } from './types';
+import { PRIORITIES } from './lib/priority';
+import type { CategoryItem, Item, Priority } from './types';
 import { mgToUnit, unitToMg, WEIGHT_UNITS } from './weight';
 
 type Props = {
@@ -22,6 +23,7 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
   const [qty, setQty] = useState(String(item.qty));
   const [worn, setWorn] = useState(item.worn);
   const [consumable, setConsumable] = useState(item.consumable);
+  const [priority, setPriority] = useState<Priority>(item.priority ?? 'Suggested');
   const [weighed, setWeighed] = useState(item.effective.weighed);
   const [initialWeightMg] = useState(item.weight);
   const userOverrodeWeighed = useRef(false);
@@ -68,11 +70,12 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
     if (imageUrl.trim() !== item.imageUrl) itemPatch.imageUrl = imageUrl.trim();
     if (singleton !== item.singleton) itemPatch.singleton = singleton;
 
-    const ciPatch: { qty?: number; worn?: boolean; consumable?: boolean; weighed?: boolean } = {};
+    const ciPatch: { qty?: number; worn?: boolean; consumable?: boolean; priority?: Priority; weighed?: boolean } = {};
     const qtyNum = Number(qty);
     if (Number.isFinite(qtyNum) && qtyNum !== item.qty) ciPatch.qty = qtyNum;
     if (worn !== item.worn) ciPatch.worn = worn;
     if (consumable !== item.consumable) ciPatch.consumable = consumable;
+    if (priority !== item.priority) ciPatch.priority = priority;
 
     if (weighed !== item.effective.weighed) {
       if (item.writeTarget.weighed === 'item') {
@@ -184,6 +187,12 @@ export function RowEditModal({ categoryId, item, onClose, onSaved }: Props) {
             <label className="field">
               <span className="field-label">Consumable</span>
               <input type="checkbox" checked={consumable} onChange={(e) => setConsumable(e.target.checked)} />
+            </label>
+            <label className="field">
+              <span className="field-label">Priority</span>
+              <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+                {PRIORITIES.map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
             </label>
           </div>
           {error && <div className="inline-error">{error}</div>}

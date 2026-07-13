@@ -1,4 +1,4 @@
-import type { CategoryItem, Item, ItemUsage, ItemWithUsage, ListDetail, ListSummary, Settings, Template, TemplateSummary } from './types';
+import type { CategoryItem, Item, ItemUsage, ItemWithUsage, ListDetail, ListSummary, Priority, Settings, Template, TemplateSummary } from './types';
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -53,9 +53,9 @@ export const api = {
   searchItems: (q: string) =>
     get<Item[]>(`/api/items?q=${encodeURIComponent(q)}`),
 
-  linkCategoryItem: (body: { categoryId: number; itemId: number; qty?: number; worn?: boolean; consumable?: boolean }) =>
+  linkCategoryItem: (body: { categoryId: number; itemId: number; qty?: number; worn?: boolean; consumable?: boolean; priority?: Priority }) =>
     send<CategoryItem>('POST', '/api/category_items', body),
-  updateCategoryItem: (categoryId: number, itemId: number, body: { qty?: number; worn?: boolean; consumable?: boolean; star?: boolean; acquired?: boolean; weighed?: boolean; packed?: boolean }) =>
+  updateCategoryItem: (categoryId: number, itemId: number, body: { qty?: number; worn?: boolean; consumable?: boolean; star?: boolean; priority?: Priority; acquired?: boolean; weighed?: boolean; packed?: boolean }) =>
     send<CategoryItem>('PUT', `/api/category_items/${categoryId}/${itemId}`, body),
   unlinkCategoryItem: (categoryId: number, itemId: number) =>
     send<{ ok: true }>('DELETE', `/api/category_items/${categoryId}/${itemId}`),

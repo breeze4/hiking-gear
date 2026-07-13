@@ -13,7 +13,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "NODE_ENV=production tsx server/index.ts",
-    "test": "node --test --import tsx/esm src/lib/prep.test.ts src/lib/progress.test.ts server/prep-aggregator.test.ts"
+    "test": "node --test --import tsx/esm src/lib/prep.test.ts src/lib/priority.test.ts src/lib/progress.test.ts server/prep-aggregator.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
