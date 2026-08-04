@@ -426,7 +426,7 @@ export const openApiDocument = {
             in: 'query',
             required: false,
             schema: { type: 'string' },
-            description: 'Case-insensitive name LIKE search; omit for the first 50 by name.',
+            description: 'Case-insensitive LIKE search on name and description; omit for the first 50 by name.',
           },
         ],
         responses: {

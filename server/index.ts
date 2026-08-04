@@ -473,7 +473,8 @@ app.put('/api/items/:id', async (c) => {
 app.get('/api/items', (c) => {
   const q = (c.req.query('q') ?? '').trim();
   if (q) {
-    const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items WHERE LOWER(name) LIKE ? ORDER BY name COLLATE NOCASE LIMIT 50').all(`%${q.toLowerCase()}%`) as any[];
+    const like = `%${q.toLowerCase()}%`;
+    const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ? ORDER BY name COLLATE NOCASE LIMIT 50').all(like, like) as any[];
     return c.json(rows.map((r) => ({ ...r, singleton: !!r.singleton, acquired: !!r.acquired, weighed: !!r.weighed })));
   }
   const rows = db.prepare('SELECT id, name, description, weight, author_unit AS authorUnit, price, image, image_url AS imageUrl, url, singleton, acquired, weighed FROM items ORDER BY name COLLATE NOCASE LIMIT 50').all() as any[];
