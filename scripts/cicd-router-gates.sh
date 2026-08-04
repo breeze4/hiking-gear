@@ -3,6 +3,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-npm ci
-npm test
-npm run build
+pnpm install --frozen-lockfile
+pnpm test
+pnpm run build

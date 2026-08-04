@@ -3,6 +3,7 @@ import { categoryItemPriority, isPriority } from '../src/lib/priority';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { db, getSetting } from './db.js';
 import { resolvePrepStatus } from '../src/lib/prep.js';
 import { buildToBuyList, acquireItem } from './prep-aggregator.js';
@@ -52,8 +53,16 @@ type CategoryItemRow = {
 
 const app = new Hono();
 
+// Router-generated deploy stamp; absent in local dev.
+let deployVersion = 'dev';
+try {
+  deployVersion = JSON.parse(readFileSync('cicd-router.version.json', 'utf8')).version ?? 'dev';
+} catch {
+  // no stamp file — local run
+}
+
 app.get('/api/health', (c) => {
-  return c.json({ status: 'ok' });
+  return c.json({ status: 'ok', version: deployVersion });
 });
 
 app.get('/api/settings', (c) => {

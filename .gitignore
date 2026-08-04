@@ -1,5 +1,6 @@
 node_modules/
 .env
+cicd-router.version.json
 data/
 reference/
 dist/
