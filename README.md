@@ -30,10 +30,12 @@ pnpm run build
 
 ## Deployment
 
-Factory deploys each pushed `main` commit that passes the project gates. The
-`factory.project.yml` file is the active contract. Factory runs the retained
-`scripts/cicd-router-gates.sh` gate, runs `deploy/remote-bootstrap.sh`, restarts
-`hiking-gear.service`, and examines `/api/health` on port `8002`.
+A local commit to `main` creates a durable Factory deployment intent. The
+Factory runner publishes the exact commit to GitHub and asks Factory to record
+the deployment. The `factory.project.yml` file is the active contract. Factory
+runs `scripts/cicd-router-gates.sh` as the project gate. Factory runs
+`deploy/remote-bootstrap.sh`, restarts `hiking-gear.service`, and examines
+`/api/health` on port `8002`.
 
 The `cicd-router.project.yml` file is audit and recovery data only. The source
 copy excludes `data/`, so deployment does not replace the live database.
