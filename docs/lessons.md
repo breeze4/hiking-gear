@@ -3,8 +3,15 @@ Purpose: Append-only session feedback log; ingested periodically by the ingest-l
 Scope: Cross-session workflow lessons for this project; read when ingesting lessons or reviewing recurring friction.
 Entry points: `docs/lessons.md`
 Related: `docs/plans/INDEX.md` — plan index; router at `docs/README.md`
-Last-verified: 2026-08-04 — verified against main
+Last-verified: 2026-08-28 — deployment guidance updated for Factory
 Status: current
+
+### 2026-08-28 — correction — Factory replaced router hooks
+Context: Factory became the deployment authority for the production service
+Push `main` to send the exact commit to Factory. The `factory.project.yml` file
+is the active contract. The `cicd-router.project.yml` file is audit data only.
+Factory keeps the `scripts/cicd-router-gates.sh` filename for the project gate.
+A local commit does not start a deployment.
 
 ### 2026-08-04 — doc-gap — CLAUDE.md pointed at a deleted deploy script
 Context: issue #1 triage session; first deploy attempt ran `./deploy/deploy.sh`, removed a month earlier by f82c1a1
