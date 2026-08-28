@@ -56,3 +56,7 @@ smoke:
 rollback:
   source: last_green_sha
 
+
+# A rollback loads the contract from the SHA it deploys, so the
+# migration needs a second SHA that also carries this file. This comment
+# is that commit: the two trees are byte-identical everywhere else.
