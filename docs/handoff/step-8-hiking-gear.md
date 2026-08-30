@@ -45,7 +45,16 @@ candidate still invoked Corepack through its pnpm shim. The final recovery
 starts the already-installed `tsx` runtime directly. The build and all package
 operations continue to use pnpm. This removes the source `npm start` command
 without giving the runtime a writable package-manager cache. The candidate and
-image gates run again from this recovery commit.
+image gates run again from this recovery commit. The production dependency set
+now includes `tsx`, because the TypeScript server starts at runtime.
+
+The Woodpecker webhook did not create a pipeline for the startup recovery until
+the public listener was reapplied. After preserving the absent delivery as an
+edge recovery, one empty trigger commit created pipeline `4`. Pipeline `4`
+passed for commit `8c28125c22b8fdedf5819228ff0e974df3e9cdaa` and published
+`ghcr.io/breeze4/hiking-gear@sha256:15c5f74eafbc7ba63d0973eec03990cbf8433a15e5e94b63868afb1256d77626`.
+Its production-data candidate then proved that `tsx` must be a production
+dependency. The focused image and candidate gates run again after that repair.
 
 ## Rollback
 
