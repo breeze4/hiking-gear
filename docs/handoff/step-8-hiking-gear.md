@@ -56,6 +56,12 @@ passed for commit `8c28125c22b8fdedf5819228ff0e974df3e9cdaa` and published
 Its production-data candidate then proved that `tsx` must be a production
 dependency. The focused image and candidate gates run again after that repair.
 
+The GitHub delivery for the production-dependency recovery received HTTP `502`
+with `failed to connect to host`, so Woodpecker had no pipeline for
+`b8fae038dbc528bf9161b21ac04c3a7c3e408d51`. After the delivery evidence was
+recorded, this step creates one empty trigger commit for the unchanged recovery
+tree and monitors the resulting pipeline through the Woodpecker API.
+
 ## Rollback
 
 Stop the candidate Compose service before route cutover. Factory continues to
