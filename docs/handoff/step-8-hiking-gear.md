@@ -40,10 +40,12 @@ with revision `dc820848f789a4b5b428e5e40ac37cb7268c7f66`.
 
 The first candidate used a production-data SQLite backup and preserved the
 source service, but its process failed before health because Corepack tried to
-write its package-manager cache to the read-only root filesystem. The recovery
-installs the pinned pnpm release into `/corepack` during the build and sets
-`COREPACK_HOME=/corepack` at runtime. The candidate and image gates run again
-from this recovery commit.
+write its package-manager cache to the read-only root filesystem. The second
+candidate still invoked Corepack through its pnpm shim. The final recovery
+starts the already-installed `tsx` runtime directly. The build and all package
+operations continue to use pnpm. This removes the source `npm start` command
+without giving the runtime a writable package-manager cache. The candidate and
+image gates run again from this recovery commit.
 
 ## Rollback
 
