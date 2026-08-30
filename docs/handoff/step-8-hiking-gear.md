@@ -34,8 +34,16 @@ socket does not exist. This environment failure is recorded before recovery.
 The Woodpecker check workflow passed for pipeline `1`. The first publication
 workflow failed because the pinned Node image already owns GID `1000`, while
 the initial Dockerfile tried to create that group again. The recovery removes
-the redundant group and user creation. The focused image publication gate runs
-again from the recovery commit.
+the redundant group and user creation. The second publication workflow passes,
+and publishes `ghcr.io/breeze4/hiking-gear@sha256:9e26b6dbc9d3bf0e43064487639488696828af81bcdc1e18714ac81719820c7d`
+with revision `dc820848f789a4b5b428e5e40ac37cb7268c7f66`.
+
+The first candidate used a production-data SQLite backup and preserved the
+source service, but its process failed before health because Corepack tried to
+write its package-manager cache to the read-only root filesystem. The recovery
+installs the pinned pnpm release into `/corepack` during the build and sets
+`COREPACK_HOME=/corepack` at runtime. The candidate and image gates run again
+from this recovery commit.
 
 ## Rollback
 
