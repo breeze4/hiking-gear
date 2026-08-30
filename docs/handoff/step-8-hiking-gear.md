@@ -31,7 +31,11 @@ SQLite backup operation, not file copies of a live database.
 `scripts/ci-gates.sh` passes: 32 Node tests pass, and the Vite production build
 passes. The local Docker daemon is unavailable on the Mac because its OrbStack
 socket does not exist. This environment failure is recorded before recovery.
-The Woodpecker publication pipeline is the authoritative remote image gate.
+The Woodpecker check workflow passed for pipeline `1`. The first publication
+workflow failed because the pinned Node image already owns GID `1000`, while
+the initial Dockerfile tried to create that group again. The recovery removes
+the redundant group and user creation. The focused image publication gate runs
+again from the recovery commit.
 
 ## Rollback
 

@@ -16,9 +16,6 @@ ENV NODE_ENV=production \
     PORT=8080 \
     DB_PATH=/data/hiking-gear.db
 
-RUN groupadd --gid 1000 hikinggear \
-  && useradd --uid 1000 --gid hikinggear --create-home hikinggear
-
 WORKDIR /app
 COPY --from=build --chown=1000:1000 /app/package.json ./
 COPY --from=build --chown=1000:1000 /app/node_modules ./node_modules
