@@ -1,0 +1,12 @@
+.git
+.claude
+.vscode
+node_modules
+data
+dist
+screenshots
+.env
+docs
+*.db
+*.db-wal
+*.db-shm

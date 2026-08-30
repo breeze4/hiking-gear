@@ -1,0 +1,28 @@
+services:
+  hiking-gear:
+    image: ${IMAGE_DIGEST:?Set IMAGE_DIGEST to an immutable GHCR digest}
+    environment:
+      DB_PATH: /data/hiking-gear.db
+      PORT: "8080"
+    user: "1000:1000"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ${HIKING_GEAR_DATA_DIR:?Set HIKING_GEAR_DATA_DIR to the protected data directory}
+        target: /data
+    ports:
+      - "127.0.0.1:18082:8080"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then((r) => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    stop_grace_period: 30s
