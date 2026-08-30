@@ -62,6 +62,30 @@ with `failed to connect to host`, so Woodpecker had no pipeline for
 recorded, this step creates one empty trigger commit for the unchanged recovery
 tree and monitors the resulting pipeline through the Woodpecker API.
 
+## Final bridge evidence
+
+The trigger pipeline passed as Woodpecker pipeline `5` for commit
+`dbf65b3d4000d0db67676ecf3b517c79b8de5d25`. It published
+`ghcr.io/breeze4/hiking-gear@sha256:db21fb33a1d51fdfccdedfdea855f0389c677f541dc1ae30f118eef106d12539`.
+The OCI revision label equals that commit, and the image user is `1000:1000`.
+
+The isolated candidate restored its database by SQLite backup, then passed
+`/api/health` and returned 26 retained lists. The candidate database reports
+`ok` and `wal`. Docker inspection proves `ReadonlyRootfs=true`, `CapDrop=[ALL]`,
+and the only bind is the candidate data directory at `/data`. The source
+`hiking-gear.service` stayed active throughout the candidate test.
+
+The normal commit hook recorded Factory compatibility deployment
+`ff510e58-b03d-4257-b332-0d65c24f0847` for the final bridge commit. Stopping
+the candidate restored the source response from port `8002`, which returned
+`{"status":"ok"}`. The candidate never received production traffic.
+
+## Remaining verification
+
+A fresh-context verifier must inspect this committed bridge and repeat the
+repository, image, production-data candidate, source-service, and rollback
+criteria without repairing this step.
+
 ## Rollback
 
 Stop the candidate Compose service before route cutover. Factory continues to
