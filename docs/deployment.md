@@ -1,37 +1,116 @@
-# Hiking Gear deployment
+# Deploy Hiking Gear
 
-Hiking Gear runs from an immutable GitHub Container Registry image. The image
-contains the built client and the Node API. It reads its SQLite data at runtime.
+Woodpecker on BeeBaby builds, publishes, and deploys this repository. Factory no
+longer participates.
 
-## Runtime data
+## What happens on a push to main
 
-The Compose service mounts `HIKING_GEAR_DATA_DIR` at `/data`. The directory
-contains `hiking-gear.db` and its SQLite write-ahead log files. The service sets
-`DB_PATH=/data/hiking-gear.db`.
+Woodpecker runs three workflows for each commit on `main`:
 
-Before a candidate starts, create a consistent backup with SQLite:
+1. `.woodpecker/check.yaml` runs `scripts/ci-gates.sh` in a pinned Node
+   container. The gate installs the locked dependencies, runs the tests, and
+   builds the client.
+2. `.woodpecker/publish.yaml` builds the runtime image and pushes it to
+   `ghcr.io/breeze4/hiking-gear` with the commit SHA as its tag.
+3. `.woodpecker/deploy.yaml` calls the restricted deployment command on BeeBaby
+   with that tag. The host resolves the tag to its immutable digest with its own
+   registry credentials, so the registry token stays limited to the build
+   plugin.
+
+A pull request runs only the check workflow. Deployment secrets stay out of pull
+request pipelines.
+
+To run the same gate before a local commit:
 
 ```sh
-sqlite3 /srv/beebaby/data/hiking-gear/hiking-gear.db ".backup '/srv/beebaby/backups/hiking-gear/hiking-gear.db'"
+bash scripts/ci-gates.sh
 ```
 
-The data directory owner must be UID and GID `1000`. Do not copy a live
-database file without its SQLite backup operation.
+## What the deployment command does
 
-## Build and verify an image
+The `deploy` forced command reaches `/usr/local/sbin/beebaby-deploy`, which
+accepts only an allowlisted project, repository, commit, image digest, and
+action. For each deployment it takes the host lock, confirms that the image
+digest belongs to the expected GHCR repository, confirms that the image revision
+label equals the pipeline commit, renders the Compose stack with the digest,
+waits for container health, probes the service through the Caddy edge, and
+records the digest. A failed health or route check restores the previous digest.
 
-Set the following values before rendering `compose.beebaby.yaml`:
+## Roll back
+
+To return to the previous digest, read the last two entries in
+`/srv/beebaby/deployments/hiking-gear/history.log` on BeeBaby and run the
+deployment command with the digest you want:
 
 ```sh
-IMAGE_DIGEST=ghcr.io/breeze4/hiking-gear@sha256:IMAGE_SHA256
-HIKING_GEAR_DATA_DIR=/srv/beebaby/data/hiking-gear
+ssh beeadmin@beebaby
+sudo /usr/local/sbin/beebaby-deploy hiking-gear breeze4/hiking-gear \
+  COMMIT_SHA ghcr.io/breeze4/hiking-gear@sha256:DIGEST deploy
 ```
 
-The candidate listens on loopback port `18082`. Confirm `/api/health`, the
-root page, and a retained client route after the container becomes healthy.
+The active digest and commit stay in
+`/srv/beebaby/deployments/hiking-gear/active.env`.
 
-## Roll back a candidate
+A rollback replaces the image only. The data directory does not change, so an
+image that expects a newer schema and an image that expects an older one both
+open the same database file. Take a backup before you deploy a commit that
+changes the schema in `server/db.ts`.
 
-While Factory owns the source deployment, stop the candidate Compose service.
-The bridge does not move traffic, remove Factory contracts, or change the
-source deployment service.
+## Data
+
+The service keeps its gear lists and items in one SQLite database. The Compose
+stack binds the host data directory at `/data` and sets
+`DB_PATH=/data/hiking-gear.db`. The container runs as UID and GID `1000`, so the
+directory owner must match.
+
+The deployment command reads the directory path from
+`/srv/beebaby/secrets/deploy-env/hiking-gear.env`, which sets
+`HIKING_GEAR_DATA_DIR`. The cutover kept the retained path
+`/home/beeadmin/dev/hiking-gear/data`, so the live database, its write-ahead
+log, and its shared-memory file stay where the source deployment left them.
+
+Copy a live database only with the SQLite backup operation, never with `cp`:
+
+```sh
+ssh beeadmin@beebaby
+sqlite3 /home/beeadmin/dev/hiking-gear/data/hiking-gear.db ".backup '/tmp/hiking-gear.db'"
+```
+
+The cutover backups stay in
+`/srv/beebaby/backups/stateful-cutover/hiking-gear/`.
+
+The local `data/hiking-gear.db` file is development data. The deployed database
+is the source of truth.
+
+## Secrets
+
+The application reads no secret. Woodpecker holds the two secrets that the
+pipeline needs: `ghcr_token` for the publish plugin and `beebaby_deploy_key` for
+the deploy step. The deploy step never reads `ghcr_token`, because Woodpecker
+honors an image filter only on a plugin step.
+
+## Verify a deployment
+
+Caddy routes tailnet port `8002` to the container port `8080`. After a
+deployment, check the health endpoint and record the status code:
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' http://beebaby.tailc65f2f.ts.net:8002/api/health
+```
+
+The `version` value in that response reads `dev`, because the retired router
+wrote the stamp file that `server/index.ts` looks for. To confirm which commit
+is live, read the deployment record:
+
+```sh
+ssh beebaby 'sudo -n cat /srv/beebaby/deployments/hiking-gear/active.env'
+```
+
+## Retired source deployment
+
+The `deploy/remote-bootstrap.sh` script and the `deploy/hiking-gear.service`
+unit describe the retired source-copy deployment. The user unit stays installed
+and inactive on BeeBaby. These files stay in the tree until the container
+deployment passes one BeeBaby reboot and seven days of normal operation, because
+the documented rollback path still needs them. Remove them after that window
+closes.

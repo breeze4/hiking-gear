@@ -20,25 +20,33 @@ proxies `/api` to the server.
 
 ## Run the gates
 
-Run these commands before you commit:
+Run the repository gate before you commit. It installs the locked dependencies,
+runs the tests, and builds the client:
+
+```bash
+bash scripts/ci-gates.sh
+```
+
+Run the typecheck as well, because the gate does not include it:
 
 ```bash
 pnpm exec tsc --noEmit
-pnpm test
-pnpm run build
 ```
 
 ## Deployment
 
-A local commit to `main` creates a durable Factory deployment intent. The
-Factory runner publishes the exact commit to GitHub and asks Factory to record
-the deployment. The `factory.project.yml` file is the active contract. Factory
-runs `scripts/cicd-router-gates.sh` as the project gate. Factory runs
-`deploy/remote-bootstrap.sh`, restarts `hiking-gear.service`, and examines
-`/api/health` on port `8002`.
+Woodpecker on BeeBaby tests each commit on the `main` branch, builds an
+immutable container image, publishes it to GitHub Container Registry, and
+deploys that digest through the restricted deployment command. Caddy routes
+tailnet port `8002` to the running container. For the complete path, read
+[Deploy Hiking Gear](docs/deployment.md).
 
-The `cicd-router.project.yml` file is audit and recovery data only. The source
-copy excludes `data/`, so deployment does not replace the live database.
+The container mounts the retained data directory, so a deployment never replaces
+the live database.
+
+The `deploy/` directory records the retired source-copy deployment. It stays
+until the container deployment passes one BeeBaby reboot and seven days of
+normal operation, because the documented rollback path still needs it.
 
 The live app is available at `http://beebaby:8002/` on the private tailnet.
 

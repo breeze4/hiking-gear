@@ -6,6 +6,4 @@ steps:
     image: node:22.14.0-bookworm-slim@sha256:745403dc46b5ab4c998502b07a12cbf020cf2c30645427a68ec0718f02d647de
     commands:
       - corepack enable
-      - pnpm install --frozen-lockfile
-      - pnpm test
-      - pnpm build
+      - bash scripts/ci-gates.sh

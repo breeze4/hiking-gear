@@ -3,8 +3,16 @@ Purpose: Append-only session feedback log; ingested periodically by the ingest-l
 Scope: Cross-session workflow lessons for this project; read when ingesting lessons or reviewing recurring friction.
 Entry points: `docs/lessons.md`
 Related: `docs/plans/INDEX.md` — plan index; router at `docs/README.md`
-Last-verified: 2026-08-28 — deployment guidance updated for Factory
+Last-verified: 2026-08-31 — deployment guidance updated for Woodpecker
 Status: current
+
+### 2026-08-31 — correction — Woodpecker replaced Factory
+Context: Factory is stopped and archived; Woodpecker on BeeBaby is the only deployment path
+Push `main` and Woodpecker runs the check, publish, and deploy workflows. The
+`.woodpecker/` directory holds the active contract. `scripts/ci-gates.sh` is the
+one gate file. The retired `factory.project.yml` and `cicd-router.project.yml`
+contracts are gone from the tree and stay in git history. This entry supersedes
+the 2026-08-28 entry below.
 
 ### 2026-08-28 — correction — Factory replaced router hooks
 Context: Factory became the deployment authority for the production service
