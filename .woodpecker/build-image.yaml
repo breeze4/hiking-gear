@@ -1,0 +1,31 @@
+# Build every image on each pull request and on main, with no secret and no
+# push, so a broken image build fails the pull request. On main, the publish
+# workflow builds the same images again and pushes them.
+when:
+  - event: pull_request
+  - event: push
+    branch: main
+
+# One entry for each image. The publish workflow holds the same list. A
+# repository with no image has no build-image, publish, or deploy workflow.
+matrix:
+  include:
+    - IMAGE: hiking-gear
+      DOCKERFILE: Dockerfile
+
+# Uses no secret. The Buildx plugin runs privileged, which only the agent on
+# beebaby allows.
+labels:
+  location: beebaby
+
+steps:
+  build-image:
+    image: woodpeckerci/plugin-docker-buildx@sha256:ccb9072d4f51dc6ec106b364c6806c6647c93c59594f2d10d121f94b0566591f
+    settings:
+      build_args:
+        VCS_REF: ${CI_COMMIT_SHA}
+      dockerfile: ${DOCKERFILE}
+      dry_run: true
+      platforms: linux/amd64
+      repo: ghcr.io/breeze4/${IMAGE}
+      tags: ${CI_COMMIT_SHA}

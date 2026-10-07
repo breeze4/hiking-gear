@@ -1,13 +1,43 @@
-#!/usr/bin/env bash
-# The repository gate. Woodpecker runs this file from .woodpecker/check.yaml,
-# and it is the same gate to run before a local commit.
-# Usage: scripts/ci-gates.sh [all]
-# The "all" argument means "run every gate"; there is only one gate group
-# here, so the argument is accepted and ignored.
-set -euo pipefail
+#!/bin/sh
+# Every check that hiking-gear must pass. The check workflow runs
+# `bash scripts/ci-gates.sh all` inside the shared BeeBaby CI image, and
+# `sh scripts/ci-local.sh all` runs the same command in the same image on your
+# machine. scripts/stamp-ci.py stamps this file only when the repository has
+# none, so add the project's own checks to gate_project.
+#
+# Usage: bash scripts/ci-gates.sh [workflows|project|all]
+set -eu
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
-cd "$(dirname "$0")/.."
+usage() {
+  printf '%s\n' "Usage: bash scripts/ci-gates.sh [workflows|project|all]" >&2
+}
 
-pnpm install --frozen-lockfile
-pnpm test
-pnpm run build
+# Woodpecker gives ghcr_token to plugin steps only. The check reads every
+# workflow file, the main-only publish and deploy workflows too, so a pull
+# request fails before main does.
+gate_workflows() {
+  python3 "$root/scripts/check-ghcr-token.py" "$root"
+}
+
+gate_project() {
+  cd "$root"
+  pnpm install --frozen-lockfile
+  pnpm test
+  pnpm run build
+}
+
+target="${1:-all}"
+
+case "$target" in
+  workflows) gate_workflows ;;
+  project) gate_project ;;
+  all)
+    gate_workflows
+    gate_project
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac
