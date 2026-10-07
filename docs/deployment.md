@@ -5,26 +5,42 @@ longer participates.
 
 ## What happens on a push to main
 
-Woodpecker runs three workflows for each commit on `main`:
+The workflows come from the BeeBaby CI template in `beebaby-infra`, stamped by
+its `scripts/stamp-ci.py`. Woodpecker runs four workflows for each commit on
+`main`:
 
-1. `.woodpecker/check.yaml` runs `scripts/ci-gates.sh` in a pinned Node
-   container. The gate installs the locked dependencies, runs the tests, and
+1. `.woodpecker/check.yaml` runs `bash scripts/ci-gates.sh all` in the pinned
+   BeeBaby CI image. The gate runs `scripts/check-ghcr-token.py` on the
+   workflow files, then installs the locked dependencies, runs the tests, and
    builds the client.
-2. `.woodpecker/publish.yaml` builds the runtime image and pushes it to
-   `ghcr.io/breeze4/hiking-gear` with the commit SHA as its tag.
-3. `.woodpecker/deploy.yaml` calls the restricted deployment command on BeeBaby
+2. `.woodpecker/build-image.yaml` builds the runtime image with no secret and
+   pushes nothing.
+3. After both pass, `.woodpecker/publish.yaml` builds the runtime image again
+   and pushes it to `ghcr.io/breeze4/hiking-gear` with the commit SHA as its
+   tag. Its `publish-image` step is the only step that reads `ghcr_token`.
+4. `.woodpecker/deploy.yaml` calls the restricted deployment command on BeeBaby
    with that tag. The host resolves the tag to its immutable digest with its own
    registry credentials, so the registry token stays limited to the build
    plugin.
 
-A pull request runs only the check workflow. Deployment secrets stay out of pull
-request pipelines.
+A pull request runs the same check and build-image workflows, so a broken image
+build fails the pull request. Deployment secrets stay out of pull request
+pipelines.
 
 To run the same gate before a local commit:
 
 ```sh
 bash scripts/ci-gates.sh
 ```
+
+To run the gate in the pinned BeeBaby CI image, run `sh scripts/ci-local.sh all`.
+
+## Secrets
+
+The `secret-names.yaml` file at the repository root lists the secret names that
+the service reads. The values live in the BeeBaby secret store. The list holds
+no entries: `cos secrets adopt` found no secret for hiking-gear, and
+`HIKING_GEAR_DATA_DIR` in the deploy env file is a setting.
 
 ## What the deployment command does
 

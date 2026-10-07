@@ -3,8 +3,13 @@ Purpose: Append-only session feedback log; ingested periodically by the ingest-l
 Scope: Cross-session workflow lessons for this project; read when ingesting lessons or reviewing recurring friction.
 Entry points: `docs/lessons.md`
 Related: `docs/plans/INDEX.md` — plan index; router at `docs/README.md`
-Last-verified: 2026-08-31 — deployment guidance updated for Woodpecker
+Last-verified: 2026-10-07 — CI template re-stamp lesson added
 Status: current
+
+### 2026-10-07 — worked-well — re-stamp CI from the template
+Context: breeze4/hiking-gear#10, move the pipelines to the beebaby-infra CI template and add `secret-names.yaml`
+`stamp-ci.py` never overwrites a file, so delete the workflows, `scripts/ci-gates.sh`, and `scripts/ci-local.sh` first, run `stamp-ci.py hiking-gear . --image hiking-gear,Dockerfile`, then move the earlier gate commands into `gate_project`. The `adopt` draft lives only on beebaby; from a cloud worker, derive it from beebaby-infra's `deploy/env-templates/hiking-gear.env` and the project record: every name there is a setting, so the list holds no entries.
+Proposed fix: applied — a later re-stamp follows the same steps.
 
 ### 2026-08-31 — correction — Woodpecker replaced Factory
 Context: Factory is stopped and archived; Woodpecker on BeeBaby is the only deployment path

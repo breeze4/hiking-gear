@@ -2,9 +2,10 @@ Dev: `pnpm run dev` (server at :3000, Vite client at :5173 — client proxies `/
 Typecheck: `pnpm exec tsc --noEmit`
 Test: `pnpm test` (node --test suites in `src/lib/` and `server/`)
 Build: `pnpm run build` (vite build)
-Gate: `bash scripts/ci-gates.sh` (install, test, build — the same file Woodpecker runs)
-Deploy: push `main`. Woodpecker runs `.woodpecker/check.yaml`, `publish.yaml`,
-and `deploy.yaml`, then the BeeBaby deployment command replaces the container.
+Gate: `bash scripts/ci-gates.sh` (workflow lint, install, test, build — the same file Woodpecker runs)
+Deploy: push `main`. Woodpecker runs `.woodpecker/check.yaml`, `build-image.yaml`,
+`publish.yaml`, and `deploy.yaml`, then the BeeBaby deployment command replaces the container.
+The workflows come from the beebaby-infra CI template (`scripts/stamp-ci.py`); put project checks in `gate_project` of `scripts/ci-gates.sh`.
 Verify: `curl http://beebaby:8002/api/health` returns 200. Its `version` value
 reads `dev`, so read the deployed commit from
 `/srv/beebaby/deployments/hiking-gear/active.env` on BeeBaby instead.

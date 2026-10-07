@@ -4,8 +4,16 @@ when:
 
 depends_on:
   - check
+  - build-image
 
-# Uses ghcr_token, so only the agent on beebaby runs this workflow.
+# One entry for each image, the same list as the build-image workflow.
+matrix:
+  include:
+    - IMAGE: hiking-gear
+      DOCKERFILE: Dockerfile
+
+# Uses ghcr_token, so only the agent on beebaby runs this workflow. The
+# publish-image step is the only step that reads ghcr_token.
 labels:
   location: beebaby
 
@@ -15,10 +23,10 @@ steps:
     settings:
       build_args:
         VCS_REF: ${CI_COMMIT_SHA}
-      dockerfile: Dockerfile
+      dockerfile: ${DOCKERFILE}
       platforms: linux/amd64
       registry: https://ghcr.io
-      repo: ghcr.io/breeze4/hiking-gear
+      repo: ghcr.io/breeze4/${IMAGE}
       tags: ${CI_COMMIT_SHA}
       username: breeze4
       password:

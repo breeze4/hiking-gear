@@ -2,10 +2,15 @@ when:
   - event: push
     branch: main
 
+# Woodpecker waits for every image in the publish matrix.
 depends_on:
   - publish
 
-# Uses beebaby_deploy_key, so only the agent on beebaby runs this workflow.
+# Only the agent on beebaby runs a deploy workflow, so the deploy key never
+# reaches an agent off the host. The first image takes the image position. Each
+# further image follows the action as VARIABLE=ghcr.io/breeze4/IMAGE:SHA, where
+# VARIABLE is that image's image_variable in the project record.
+# scripts/stamp-ci.py writes those pairs, so it matches the command text below.
 labels:
   location: beebaby
 
